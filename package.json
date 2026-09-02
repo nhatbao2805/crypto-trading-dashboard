@@ -1,0 +1,20 @@
+{
+  "name": "crypto-trading-dashboard",
+  "version": "1.0.0",
+  "description": "Professional Crypto Trading Dashboard: Theory, Daily Trading Journal with Image Uploads, and AGY Terminal News Impact Filter",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "crypto",
+    "trading-journal",
+    "bitcoin",
+    "antigravity",
+    "agy",
+    "news-filter"
+  ],
+  "author": "",
+  "license": "ISC"
+}
