@@ -28,7 +28,17 @@ function switchTab(tabId) {
       loadJournalEntries();
     }
   } else if (tabId === 'tab-news') {
-    // news tab ready
+    if (typeof switchNewsSubTab === 'function') {
+      // Default to current or analyze subtab
+      const currentActiveSub = document.querySelector('#tab-news .sub-tab-btn.active')?.id;
+      if (currentActiveSub === 'btn-news-subtab-chat') {
+        switchNewsSubTab('chat');
+      } else if (currentActiveSub === 'btn-news-subtab-feed') {
+        switchNewsSubTab('feed');
+      } else {
+        switchNewsSubTab('analyze');
+      }
+    }
   }
 }
 
@@ -41,6 +51,65 @@ function openModal(id) {
 function closeModal(id) {
   const m = document.getElementById(id);
   if (m) m.classList.remove('active');
+}
+
+// Universal Dark Theme Confirm Modal (Bug 6 fix)
+function showConfirmModal(options = {}) {
+  const {
+    title = '⚠️ Xác Nhận Hành Động',
+    message = 'Bạn có chắc chắn muốn thực hiện hành động này?',
+    confirmText = 'Xác Nhận',
+    cancelText = 'Hủy Bỏ',
+    confirmClass = 'btn-danger',
+    onConfirm = null,
+    onCancel = null
+  } = options;
+
+  let modalEl = document.getElementById('global-confirm-modal');
+  if (!modalEl) {
+    modalEl = document.createElement('div');
+    modalEl.id = 'global-confirm-modal';
+    modalEl.className = 'modal-backdrop';
+    document.body.appendChild(modalEl);
+  }
+
+  modalEl.innerHTML = `
+    <div class="modal-card animate-fadeIn" style="max-width: 440px; padding: 24px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.6); background: var(--bg-card); border-radius: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
+          ${title}
+        </h3>
+        <button class="btn btn-outline" style="padding: 2px 7px; font-size: 12px;" onclick="closeConfirmModal(false)">✕</button>
+      </div>
+      <p style="font-size: 13.5px; color: #cbd5e1; line-height: 1.6; margin-bottom: 20px;">
+        ${message}
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;" onclick="closeConfirmModal(false)">
+          ${cancelText}
+        </button>
+        <button class="btn ${confirmClass}" style="padding: 8px 18px; font-size: 13px; font-weight: 700;" onclick="closeConfirmModal(true)">
+          ${confirmText}
+        </button>
+      </div>
+    </div>
+  `;
+
+  window._confirmCallback = onConfirm;
+  window._cancelCallback = onCancel;
+  modalEl.classList.add('active');
+}
+
+function closeConfirmModal(confirmed) {
+  const modalEl = document.getElementById('global-confirm-modal');
+  if (modalEl) modalEl.classList.remove('active');
+  if (confirmed && typeof window._confirmCallback === 'function') {
+    window._confirmCallback();
+  } else if (!confirmed && typeof window._cancelCallback === 'function') {
+    window._cancelCallback();
+  }
+  window._confirmCallback = null;
+  window._cancelCallback = null;
 }
 
 // Toast Notifications
@@ -214,3 +283,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Periodic REST refresh every 5s as backup
   setInterval(fetchInitialTickers, 5000);
 });
+
+// Explicit Global Window Bindings
+if (typeof window !== 'undefined') {
+  window.switchTab = switchTab;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.showConfirmModal = showConfirmModal;
+  window.closeConfirmModal = closeConfirmModal;
+  window.showToast = showToast;
+  window.liveBinancePrices = window.liveBinancePrices || {};
+}

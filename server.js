@@ -252,6 +252,22 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { history });
   }
 
+  // Practice Progress Sync API (Bug 5 fix)
+  if (pathname === '/api/practice/progress' && method === 'GET') {
+    const progress = db.getPracticeProgress();
+    return sendJson(res, 200, { success: true, progress });
+  }
+
+  if (pathname === '/api/practice/progress' && method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      db.savePracticeProgress(body);
+      return sendJson(res, 200, { success: true });
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
   if (pathname.startsWith('/api/journal/ai-review/') && method === 'DELETE') {
     const id = pathname.split('/')[4];
     const deleted = db.deleteTradeReview(id);

@@ -1,6 +1,10 @@
 // --- MODULE: TRADING JOURNAL, DISCIPLINED NOTES & AI TRADE AUDITOR ---
 // Built directly to practice Chapter 11 (Step 5: Viết Nhật Ký Giao Dịch & Hoàn Thiện Kỷ Luật)
 
+if (typeof window !== 'undefined') {
+  window.liveBinancePrices = window.liveBinancePrices || {};
+}
+
 let journalEntries = [];
 let noteEntries = [];
 let pnlChartInstance = null;
@@ -448,26 +452,49 @@ async function quickCloseTradeLive(id) {
   const coinUpper = (entry.coin || 'BTC').toUpperCase();
   const livePrice = getTradeLivePrice(coinUpper) || entry.entry_price || 0;
 
-  if (!confirm(`Bạn có chắc chắn muốn CHỐT LỆNH #${id} (${coinUpper}) tại giá Live Binance: $${formatDisplayPrice(livePrice)}?`)) {
-    return;
-  }
+  if (typeof showConfirmModal === 'function') {
+    showConfirmModal({
+      title: `⚡ Chốt Lệnh #${id} (${coinUpper})`,
+      message: `Bạn có chắc chắn muốn chốt vị thế #${id} (${coinUpper}) tại mức giá Live Binance: <b>$${formatDisplayPrice(livePrice)}</b>? Lợi nhuận/lỗ sẽ được tính toán tự động và cập nhật trạng thái lệnh.`,
+      confirmText: 'Chốt Lệnh Ngay',
+      cancelText: 'Hủy Bỏ',
+      confirmClass: 'btn-primary',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/journal/close-live/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ livePrice })
+          });
 
-  try {
-    const res = await fetch(`/api/journal/close-live/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ livePrice })
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`Đã chốt lệnh #${id} tại giá $${formatDisplayPrice(livePrice)} thành công!`, 'success');
+            loadJournalEntries();
+          } else {
+            showToast('Lỗi chốt lệnh: ' + (data.error || 'Failed'), 'error');
+          }
+        } catch (err) {
+          showToast('Lỗi: ' + err.message, 'error');
+        }
+      }
     });
-
-    const data = await res.json();
-    if (res.ok) {
-      showToast(`Đã chốt lệnh #${id} tại giá $${formatDisplayPrice(livePrice)} thành công!`, 'success');
-      loadJournalEntries();
-    } else {
-      showToast('Lỗi chốt lệnh: ' + (data.error || 'Failed'), 'error');
+  } else {
+    if (!confirm(`Bạn có chắc chắn muốn CHỐT LỆNH #${id} (${coinUpper}) tại giá Live Binance: $${formatDisplayPrice(livePrice)}?`)) return;
+    try {
+      const res = await fetch(`/api/journal/close-live/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ livePrice })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Đã chốt lệnh #${id} tại giá $${formatDisplayPrice(livePrice)} thành công!`, 'success');
+        loadJournalEntries();
+      }
+    } catch (err) {
+      showToast('Lỗi: ' + err.message, 'error');
     }
-  } catch (err) {
-    showToast('Lỗi: ' + err.message, 'error');
   }
 }
 
@@ -501,32 +528,76 @@ function openAddTradeModal() {
 }
 
 async function editTradeEntry(id) {
-  const entry = journalEntries.find(e => e.id === id);
+  const entry = journalEntries.find(e => String(e.id) === String(id));
   if (!entry) return;
 
-  document.getElementById('trade-modal-title').innerText = `✏️ Chỉnh Sửa Lệnh Trade #${entry.id}`;
-  document.getElementById('trade-id').value = entry.id;
-  document.getElementById('trade-date').value = entry.date;
-  document.getElementById('trade-coin').value = entry.coin;
-  document.getElementById('trade-type').value = entry.type;
-  document.getElementById('trade-entry').value = entry.entry_price || '';
-  document.getElementById('trade-exit').value = entry.exit_price || '';
-  document.getElementById('trade-sl').value = entry.stop_loss || '';
-  document.getElementById('trade-tp').value = entry.take_profit || '';
-  document.getElementById('trade-size').value = entry.position_size || '';
-  document.getElementById('trade-status').value = entry.status || 'OPEN';
-  document.getElementById('trade-pnl-amount').value = entry.pnl_amount || '';
-  document.getElementById('trade-pnl-percent').value = entry.pnl_percent || '';
-  document.getElementById('trade-notes').value = entry.notes || '';
+  const titleEl = document.getElementById('trade-modal-title');
+  if (titleEl) titleEl.innerText = `✏️ Chỉnh Sửa Lệnh Trade #${entry.id}`;
+  
+  const idEl = document.getElementById('trade-id');
+  if (idEl) idEl.value = entry.id;
+  
+  const dateEl = document.getElementById('trade-date');
+  if (dateEl) dateEl.value = entry.date || '';
+  
+  const coinEl = document.getElementById('trade-coin');
+  if (coinEl) coinEl.value = entry.coin || 'BTC';
+  
+  const typeEl = document.getElementById('trade-type');
+  if (typeEl) typeEl.value = entry.type || 'LONG';
+  
+  const entryEl = document.getElementById('trade-entry');
+  if (entryEl) entryEl.value = entry.entry_price || '';
+  
+  const exitEl = document.getElementById('trade-exit');
+  if (exitEl) exitEl.value = entry.exit_price || '';
+  
+  const slEl = document.getElementById('trade-sl');
+  if (slEl) slEl.value = entry.stop_loss || '';
+  
+  const tpEl = document.getElementById('trade-tp');
+  if (tpEl) tpEl.value = entry.take_profit || '';
+  
+  const sizeEl = document.getElementById('trade-size');
+  if (sizeEl) sizeEl.value = entry.position_size || '';
+  
+  const statusEl = document.getElementById('trade-status');
+  if (statusEl) statusEl.value = entry.status || 'OPEN';
+  
+  const pnlAmountEl = document.getElementById('trade-pnl-amount');
+  if (pnlAmountEl) pnlAmountEl.value = entry.pnl_amount || '';
+  
+  const pnlPercentEl = document.getElementById('trade-pnl-percent');
+  if (pnlPercentEl) pnlPercentEl.value = entry.pnl_percent || '';
+  
+  const notesEl = document.getElementById('trade-notes');
+  if (notesEl) notesEl.value = entry.notes || '';
 
-  const rules = entry.rules_checked || [];
-  document.getElementById('chk-mtf').checked = rules.includes('Đã phân tích Đa khung 4H ➔ 1H ➔ 15M (Chương 7)') || rules.includes('Đã phân tích Đa khung 4H -> 1H -> 15M (Chương 7)');
-  document.getElementById('chk-sl').checked = rules.includes('Đã đặt Stop Loss dưới râu nến (Chương 4 & 9)');
-  document.getElementById('chk-rr').checked = rules.includes('Tỷ lệ R:R ≥ 1:2 (Chương 9.2)') || rules.includes('Tỷ lệ R:R >= 1:2 (Chương 9.2)');
-  document.getElementById('chk-fomo').checked = rules.includes('Không FOMO/FUD/Giao dịch trả thù (Chương 9.3)');
-  document.getElementById('chk-vol').checked = rules.includes('Đã kiểm tra Volume nến (Chương 8.1)');
+  let rules = entry.rules_checked || [];
+  if (typeof rules === 'string') {
+    try { rules = JSON.parse(rules); } catch(e) { rules = []; }
+  }
+  
+  const chkMtf = document.getElementById('chk-mtf');
+  if (chkMtf) chkMtf.checked = rules.includes('Đã phân tích Đa khung 4H ➔ 1H ➔ 15M (Chương 7)') || rules.includes('Đã phân tích Đa khung 4H -> 1H -> 15M (Chương 7)');
+  
+  const chkSl = document.getElementById('chk-sl');
+  if (chkSl) chkSl.checked = rules.includes('Đã đặt Stop Loss dưới râu nến (Chương 4 & 9)');
+  
+  const chkRr = document.getElementById('chk-rr');
+  if (chkRr) chkRr.checked = rules.includes('Tỷ lệ R:R ≥ 1:2 (Chương 9.2)') || rules.includes('Tỷ lệ R:R >= 1:2 (Chương 9.2)');
+  
+  const chkFomo = document.getElementById('chk-fomo');
+  if (chkFomo) chkFomo.checked = rules.includes('Không FOMO/FUD/Giao dịch trả thù (Chương 9.3)');
+  
+  const chkVol = document.getElementById('chk-vol');
+  if (chkVol) chkVol.checked = rules.includes('Đã kiểm tra Volume nến (Chương 8.1)');
 
-  currentUploadedImages = entry.images ? [...entry.images] : [];
+  let imgs = entry.images || [];
+  if (typeof imgs === 'string') {
+    try { imgs = JSON.parse(imgs); } catch(e) { imgs = []; }
+  }
+  currentUploadedImages = Array.isArray(imgs) ? [...imgs] : [];
   renderUploadedImagesPreview();
   setupImagePasteDropzone();
   openModal('trade-modal');
@@ -714,18 +785,40 @@ async function saveTradeEntry(e) {
 }
 
 async function deleteTradeEntry(id) {
-  if (!confirm(`Bạn có chắc chắn muốn xóa lệnh trade #${id}?`)) return;
-
-  try {
-    const res = await fetch(`/api/journal/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showToast('Đã xóa lệnh trade.', 'info');
-      loadJournalEntries();
-    } else {
-      showToast('Không thể xóa lệnh.', 'error');
+  if (typeof showConfirmModal === 'function') {
+    showConfirmModal({
+      title: `🗑️ Xóa Lệnh Trade #${id}`,
+      message: `Lệnh trade #${id} cùng toàn bộ dữ liệu phân tích sẽ bị xóa vĩnh viễn khỏi nhật ký. Bạn có chắc chắn muốn tiếp tục?`,
+      confirmText: 'Xác Nhận Xóa',
+      cancelText: 'Hủy Bỏ',
+      confirmClass: 'btn-danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/journal/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            showToast('Đã xóa lệnh trade.', 'info');
+            loadJournalEntries();
+          } else {
+            showToast('Không thể xóa lệnh.', 'error');
+          }
+        } catch (err) {
+          showToast('Lỗi: ' + err.message, 'error');
+        }
+      }
+    });
+  } else {
+    if (!confirm(`Bạn có chắc chắn muốn xóa lệnh trade #${id}?`)) return;
+    try {
+      const res = await fetch(`/api/journal/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Đã xóa lệnh trade.', 'info');
+        loadJournalEntries();
+      } else {
+        showToast('Không thể xóa lệnh.', 'error');
+      }
+    } catch (err) {
+      showToast('Lỗi: ' + err.message, 'error');
     }
-  } catch (err) {
-    showToast('Lỗi: ' + err.message, 'error');
   }
 }
 
@@ -968,18 +1061,40 @@ async function saveNoteEntry(e) {
 }
 
 async function deleteNoteEntry(id) {
-  if (!confirm(`Bạn có chắc chắn muốn xóa ghi chú này?`)) return;
-
-  try {
-    const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showToast('Đã xóa ghi chú.', 'info');
-      loadNotes();
-    } else {
-      showToast('Không thể xóa ghi chú.', 'error');
+  if (typeof showConfirmModal === 'function') {
+    showConfirmModal({
+      title: `🗑️ Xóa Ghi Chú #${id}`,
+      message: `Ghi chú này sẽ bị xóa vĩnh viễn khỏi sổ tay. Bạn có chắc chắn muốn xóa không?`,
+      confirmText: 'Xác Nhận Xóa',
+      cancelText: 'Hủy Bỏ',
+      confirmClass: 'btn-danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            showToast('Đã xóa ghi chú.', 'info');
+            loadNotes();
+          } else {
+            showToast('Không thể xóa ghi chú.', 'error');
+          }
+        } catch (err) {
+          showToast('Lỗi: ' + err.message, 'error');
+        }
+      }
+    });
+  } else {
+    if (!confirm(`Bạn có chắc chắn muốn xóa ghi chú này?`)) return;
+    try {
+      const res = await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Đã xóa ghi chú.', 'info');
+        loadNotes();
+      } else {
+        showToast('Không thể xóa ghi chú.', 'error');
+      }
+    } catch (err) {
+      showToast('Lỗi: ' + err.message, 'error');
     }
-  } catch (err) {
-    showToast('Lỗi: ' + err.message, 'error');
   }
 }
 
@@ -1499,14 +1614,51 @@ async function runAiCoachPrompt() {
   }
 }
 
+function toggleCoachCollapse() {
+  const body = document.getElementById('coach-body-content');
+  const header = document.getElementById('coach-toggle-header');
+  const chevron = document.getElementById('coach-chevron');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'flex' : 'none';
+  if (header) {
+    if (isHidden) header.classList.add('open');
+    else header.classList.remove('open');
+  }
+  if (chevron) {
+    chevron.innerText = isHidden ? '▲' : '▼';
+  }
+}
+
 function clearAiCoachHistory() {
-  const chatBox = document.getElementById('ai-coach-chat-messages');
-  if (chatBox) {
-    chatBox.innerHTML = `
-      <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px;">
-        🤖 Đã xóa lịch sử chat. Hãy đặt câu hỏi mới cho AI Trade Coach!
-      </div>
-    `;
+  if (typeof showConfirmModal === 'function') {
+    showConfirmModal({
+      title: '🗑️ Xóa Lịch Sử AI Coach',
+      message: 'Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện cùng AI Trade Coach?',
+      confirmText: 'Xóa Lịch Sử',
+      cancelText: 'Hủy Bỏ',
+      confirmClass: 'btn-danger',
+      onConfirm: () => {
+        const chatBox = document.getElementById('ai-coach-chat-messages');
+        if (chatBox) {
+          chatBox.innerHTML = `
+            <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px;">
+              🤖 Đã xóa lịch sử chat. Hãy đặt câu hỏi mới cho AI Trade Coach!
+            </div>
+          `;
+        }
+        showToast('Đã xóa lịch sử AI Coach.', 'info');
+      }
+    });
+  } else {
+    const chatBox = document.getElementById('ai-coach-chat-messages');
+    if (chatBox) {
+      chatBox.innerHTML = `
+        <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px;">
+          🤖 Đã xóa lịch sử chat. Hãy đặt câu hỏi mới cho AI Trade Coach!
+        </div>
+      `;
+    }
   }
 }
 
@@ -1566,16 +1718,36 @@ function viewSavedReviewDetail(id) {
 }
 
 async function deleteSavedReview(id) {
-  if (!confirm(`Bạn có chắc muốn xóa bản lưu AI Review #${id}?`)) return;
-
-  try {
-    const res = await fetch(`/api/journal/ai-review/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showToast('Đã xóa bản lưu AI Review.', 'info');
-      openAiReviewHistoryModal();
+  if (typeof showConfirmModal === 'function') {
+    showConfirmModal({
+      title: `🗑️ Xóa Bản Lưu Review #${id}`,
+      message: `Bản lưu chuẩn đoán nhật ký trade #${id} sẽ bị xóa vĩnh viễn khỏi hệ thống. Bạn có chắc chắn muốn xóa?`,
+      confirmText: 'Xác Nhận Xóa',
+      cancelText: 'Hủy Bỏ',
+      confirmClass: 'btn-danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/journal/ai-review/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            showToast('Đã xóa bản lưu Review.', 'info');
+            openAiReviewHistoryModal();
+          }
+        } catch (err) {
+          showToast('Lỗi xóa review: ' + err.message, 'error');
+        }
+      }
+    });
+  } else {
+    if (!confirm(`Bạn có chắc muốn xóa bản lưu AI Review #${id}?`)) return;
+    try {
+      const res = await fetch(`/api/journal/ai-review/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Đã xóa bản lưu AI Review.', 'info');
+        openAiReviewHistoryModal();
+      }
+    } catch (err) {
+      showToast('Lỗi xóa review: ' + err.message, 'error');
     }
-  } catch (err) {
-    showToast('Lỗi xóa review: ' + err.message, 'error');
   }
 }
 
@@ -1611,9 +1783,41 @@ function escapeHtml(str) {
 }
 
 // ==========================================
-// 5. INITIALIZATION
+// 5. INITIALIZATION & GLOBAL WINDOW EXPORTS
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   loadJournalEntries();
 });
+
+if (typeof window !== 'undefined') {
+  window.switchJournalSubTab = switchJournalSubTab;
+  window.loadJournalEntries = loadJournalEntries;
+  window.loadJournalStats = loadJournalStats;
+  window.quickCloseTradeLive = quickCloseTradeLive;
+  window.filterJournal = filterJournal;
+  window.resetJournalFilters = resetJournalFilters;
+  window.openAddTradeModal = openAddTradeModal;
+  window.editTradeEntry = editTradeEntry;
+  window.saveTradeEntry = saveTradeEntry;
+  window.deleteTradeEntry = deleteTradeEntry;
+  window.calculateTradePreview = calculateTradePreview;
+  window.loadNotes = loadNotes;
+  window.openAddNoteModal = openAddNoteModal;
+  window.editNoteEntry = editNoteEntry;
+  window.deleteNoteEntry = deleteNoteEntry;
+  window.togglePinNote = togglePinNote;
+  window.viewNoteDetail = viewNoteDetail;
+  window.saveNoteEntry = saveNoteEntry;
+  window.filterNotesCategory = filterNotesCategory;
+  window.filterNotes = filterNotes;
+  window.resetNotesFilters = resetNotesFilters;
+  window.selectAiPeriod = selectAiPeriod;
+  window.runAiTradeReview = runAiTradeReview;
+  window.runAiCoachPrompt = runAiCoachPrompt;
+  window.toggleCoachCollapse = toggleCoachCollapse;
+  window.clearAiCoachHistory = clearAiCoachHistory;
+  window.openAiReviewHistoryModal = openAiReviewHistoryModal;
+  window.deleteSavedReview = deleteSavedReview;
+  window.openLightbox = openLightbox;
+}
 

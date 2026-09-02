@@ -74,7 +74,7 @@ Tài liệu hóa toàn bộ System Prompts, Prompt Templates, Input Schema, Outp
     ]
   }
   ```
-- **Model/API đang gọi**: Rule-based Expert Inference Engine kết hợp AGY CLI / LLM API endpoint `/api/journal/ai-review`.
+- **Bản chất xử lý & Model/API**: 100% Deterministic Rule-Based Discipline Auditor & Expert Scoring Engine (xử lý nội bộ tức thì bằng Node.js theo ma trận chấm điểm kỷ luật giáo trình và live Binance mark price, không phụ thuộc LLM API ngoài để đảm bảo tính chính xác tuyệt đối, tốc độ miligiây và bảo mật dữ liệu). Có kiến trúc mở sẵn sàng tích hợp LLM API thật (Gemini / Claude / OpenAI) cho module NLP Sentiment Analysis trên `notes`.
 - **Điểm cần customize**:
   - Tinh chỉnh trọng số trừ điểm kỷ luật tại `AI_PROMPTS_CONFIG.tradeAuditor.scoringRubric.penalties`.
   - Mở rộng từ khóa nhận diện cảm xúc tiêu cực (`cay`, `gỡ`, `all in`, `tức`, `fomo`, `ức chế`).

@@ -53,7 +53,7 @@
             <span>📘</span> 1. Lý Thuyết & Biểu Đồ
           </button>
           <button class="nav-tab" id="btn-tab-practice" onclick="switchTab('tab-practice')">
-            <span>🎯</span> 2. Bài Tập Thực Chiến (10 Case Study)
+            <span>🎯</span> 2. Bài Tập Thực Chiến (30 Case Study)
           </button>
           <button class="nav-tab" id="btn-tab-journal" onclick="switchTab('tab-journal')">
             <span>📝</span> 3. Nhật Ký Trade & Note
@@ -228,12 +228,7 @@
               📒 2. Sổ Tay Ghi Chú & Kỷ Luật
             </button>
             <button class="sub-tab-btn" id="btn-subtab-aireview" onclick="switchJournalSubTab('aireview')">
-              🤖 3. AI Review & Chuẩn Đoán Lệnh
-            </button>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-outline" onclick="openAiReviewHistoryModal()" title="Xem lại các bản phân tích AI Review đã lưu">
-              📜 Lịch Sử AI Review
+              🛡️ 3. Auditor & Chẩn Đoán Kỷ Luật
             </button>
           </div>
         </div>
@@ -354,107 +349,134 @@
         </div>
 
         <!-- ================================================== -->
-        <!-- SUB-VIEW 3: AI REVIEW & CHUẨN ĐOÁN NHẬT KÝ TRADE  -->
+        <!-- SUB-VIEW 3: AUDITOR CHUẨN ĐOÁN KỶ LUẬT GIAO DỊCH   -->
         <!-- ================================================== -->
         <div id="journal-aireview-view" style="display: none;">
-          <!-- Controls Card: Select Time Range & Filters -->
-          <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--color-blue);">
-            <div style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-              <span>🤖</span> AI TRADE AUDITOR — HỆ THỐNG REVIEW & CHUẨN ĐOÁN LỆNH GIAO DỊCH CHUẨN GIÁO TRÌNH
-            </div>
-            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
-              AI sẽ quét toàn bộ các lệnh giao dịch theo mốc thời gian bạn chọn, đối chiếu với 11 Chương Giáo trình Crypto để đánh giá tính hợp lý, phát hiện lệnh sai / overtrading / thiếu tỉnh táo và đưa ra cách khắc phục tức thì.
-            </p>
-
-            <!-- Time Selection Presets -->
-            <div style="margin-bottom: 12px;">
-              <label style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; display: block;">
-                ⏱️ Chọn Mốc Thời Gian Muốn AI Review:
-              </label>
-              <div class="quick-coin-pills" id="ai-review-period-pills" style="margin-bottom: 0;">
-                <button class="coin-pill-btn" onclick="selectAiPeriod('TODAY')">⚡ Hôm Nay (24h)</button>
-                <button class="coin-pill-btn active" onclick="selectAiPeriod('WEEK')">📅 Tuần Này (7 Ngày)</button>
-                <button class="coin-pill-btn" onclick="selectAiPeriod('MONTH')">🗓️ Tháng Này (30 Ngày)</button>
-                <button class="coin-pill-btn" onclick="selectAiPeriod('YEAR')">🏛️ Năm Nay (2026)</button>
-                <button class="coin-pill-btn" onclick="selectAiPeriod('ALL')">✨ Toàn Bộ Lịch Sử (All Time)</button>
-                <button class="coin-pill-btn" onclick="selectAiPeriod('CUSTOM')">⚙️ Tùy Chỉnh Khoảng Ngày</button>
+          <!-- Unified Auditor Card -->
+          <div class="auditor-card">
+            <!-- Card Header -->
+            <div class="auditor-header">
+              <div class="auditor-title-group">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                  <span class="badge badge-blue" style="font-size: 10px; letter-spacing: 0.5px; padding: 3px 8px;">RULE-BASED EXPERT ENGINE</span>
+                  <span style="font-size: 11px; color: var(--text-muted);">Chuẩn 12 Chương Giáo Trình</span>
+                </div>
+                <h3><span>🛡️</span> AUDITOR CHẨN ĐOÁN KỶ LUẬT GIAO DỊCH</h3>
+                <p class="auditor-subtitle">
+                  Rà soát toàn diện: Stop Loss bắt buộc, Tỷ lệ R:R ≥ 1:2, Overtrading, Revenge Trading & Tính toán Live PnL Binance.
+                </p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+                <button class="btn btn-outline" style="font-size: 12px; padding: 7px 14px;" onclick="openAiReviewHistoryModal()">
+                  <span>📜</span> Lịch Sử Review
+                </button>
               </div>
             </div>
 
-            <!-- Custom Date Range & Coin Filter Inputs -->
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px;">
-              <div id="ai-custom-date-container" style="display: none; gap: 8px; align-items: center;">
-                <span style="font-size: 12px; color: var(--text-muted);">Từ ngày:</span>
-                <input type="date" id="ai-review-start" class="input-field" style="width: 140px;">
-                <span style="font-size: 12px; color: var(--text-muted);">Đến ngày:</span>
-                <input type="date" id="ai-review-end" class="input-field" style="width: 140px;">
+            <!-- Controls Section -->
+            <div class="auditor-controls-section">
+              <!-- Row 1: Time Range Preset Pills -->
+              <div class="auditor-period-group">
+                <label class="auditor-period-label">
+                  ⏱️ 1. Chọn mốc thời gian muốn rà soát:
+                </label>
+                <div class="quick-coin-pills" id="ai-review-period-pills" style="margin-bottom: 0;">
+                  <button class="coin-pill-btn" onclick="selectAiPeriod('TODAY')">⚡ Hôm Nay (24h)</button>
+                  <button class="coin-pill-btn active" onclick="selectAiPeriod('WEEK')">📅 Tuần Này (7 Ngày)</button>
+                  <button class="coin-pill-btn" onclick="selectAiPeriod('MONTH')">🗓️ Tháng Này (30 Ngày)</button>
+                  <button class="coin-pill-btn" onclick="selectAiPeriod('YEAR')">🏛️ Năm Nay (2026)</button>
+                  <button class="coin-pill-btn" onclick="selectAiPeriod('ALL')">✨ Toàn Bộ Lịch Sử</button>
+                  <button class="coin-pill-btn" onclick="selectAiPeriod('CUSTOM')">⚙️ Tùy Chỉnh Ngày</button>
+                </div>
               </div>
 
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <span style="font-size: 12px; color: var(--text-muted);">Lọc Coin:</span>
-                <select id="ai-review-coin" class="select-field" style="width: 140px;">
-                  <option value="ALL">Tất cả các Coin</option>
-                  <option value="BTC">BTC (Bitcoin)</option>
-                  <option value="ETH">ETH (Ethereum)</option>
-                  <option value="SOL">SOL (Solana)</option>
-                  <option value="BNB">BNB (Binance)</option>
-                  <option value="SUI">SUI (Sui)</option>
-                  <option value="DOGE">DOGE</option>
-                  <option value="XRP">XRP</option>
-                </select>
+              <!-- Row 2: Secondary Filter & Prominent Launch Action -->
+              <div class="auditor-actions-row">
+                <div class="auditor-filters-left">
+                  <div id="ai-custom-date-container" style="display: none; gap: 8px; align-items: center;">
+                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Từ:</span>
+                    <input type="date" id="ai-review-start" class="input-field" style="width: 135px; padding: 6px 10px; font-size: 12px;">
+                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Đến:</span>
+                    <input type="date" id="ai-review-end" class="input-field" style="width: 135px; padding: 6px 10px; font-size: 12px;">
+                  </div>
+
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Lọc Coin:</span>
+                    <select id="ai-review-coin" class="select-field" style="width: 150px; padding: 7px 10px; font-size: 12.5px;">
+                      <option value="ALL">Tất cả các Coin</option>
+                      <option value="BTC">BTC (Bitcoin)</option>
+                      <option value="ETH">ETH (Ethereum)</option>
+                      <option value="SOL">SOL (Solana)</option>
+                      <option value="BNB">BNB (Binance)</option>
+                      <option value="SUI">SUI (Sui)</option>
+                      <option value="DOGE">DOGE</option>
+                      <option value="XRP">XRP</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary" style="padding: 10px 24px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(41, 98, 255, 0.4);" onclick="runAiTradeReview()" id="btn-run-ai-review">
+                  <span>🚀</span> Kích Hoạt Chẩn Đoán Kỷ Luật
+                </button>
+              </div>
+            </div>
+
+            <!-- Unified State Body Container -->
+            <div id="auditor-state-container">
+              <!-- State 1: Ready / Placeholder -->
+              <div id="ai-review-placeholder" class="auditor-state-box animate-fadeIn">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(41, 98, 255, 0.12); border: 1px solid rgba(41, 98, 255, 0.3); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 12px;">
+                  🛡️
+                </div>
+                <div style="font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 6px;">Hệ thống Auditor sẵn sàng chẩn đoán</div>
+                <div style="font-size: 13px; color: var(--text-muted); max-width: 540px; margin: 0 auto 18px; line-height: 1.6;">
+                  Hệ thống sẽ đối chiếu 100% dữ liệu nhật ký lệnh với 12 Chương Giáo trình Crypto: phát hiện lệnh thiếu Stop Loss, R:R &lt; 1:2, Overtrading và tâm lý trả thù (Revenge Trading).
+                </div>
+                <button class="btn btn-outline" style="font-size: 12.5px; padding: 7px 18px; font-weight: 700;" onclick="runAiTradeReview()">
+                  <span>⚡</span> Bắt Đầu Chẩn Đoán Ngay (Tuần Này)
+                </button>
               </div>
 
-              <button class="btn btn-primary" style="padding: 9px 24px; font-size: 13.5px; margin-left: auto;" onclick="runAiTradeReview()" id="btn-run-ai-review">
-                <span>🚀</span> Kích Hoạt AI Phân Tích & Chuẩn Đoán Lệnh
-              </button>
+              <!-- State 2: Loading State -->
+              <div id="ai-review-loading" class="auditor-state-box animate-fadeIn" style="display: none;">
+                <div style="font-size: 32px; animation: spin 1s infinite linear; display: inline-block; margin-bottom: 12px;">⚙️</div>
+                <div style="font-size: 15px; font-weight: 800; color: #fff;">Đang rà soát dữ liệu nhật ký & kiểm tra checklist kỷ luật...</div>
+                <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 6px;">Đang tính toán Stop Loss, R:R, tần suất vào lệnh và quét dấu hiệu tâm lý...</div>
+              </div>
+
+              <!-- State 3: Results Container -->
+              <div id="ai-review-result-container" style="display: none;" class="animate-fadeIn">
+                <!-- Dynamically populated by journal.js renderAiReviewResult -->
+              </div>
             </div>
           </div>
 
-          <!-- AI Review Loading State -->
-          <div id="ai-review-loading" style="display: none; padding: 40px; text-align: center; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
-            <div style="font-size: 32px; animation: spin 1s infinite linear; display: inline-block;">⚙️</div>
-            <div style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 10px;">AI đang rà soát dữ liệu nhật ký trade và kiểm tra checklist kỷ luật...</div>
-            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Đang tính toán Stop Loss, R:R, tỷ lệ overtrading và phát hiện tâm lý bất ổn...</div>
-          </div>
-
-          <!-- AI Review Empty / Prompt State -->
-          <div id="ai-review-placeholder" class="card" style="padding: 40px; text-align: center; color: var(--text-muted);">
-            <div style="font-size: 36px; margin-bottom: 10px;">🤖</div>
-            <div style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px;">Sẵn sàng thực hiện AI Review Nhật Ký Trade</div>
-            <div style="font-size: 13px; max-width: 550px; margin: 0 auto 16px;">
-              Chọn khoảng thời gian (Hôm nay, Tuần này, Tháng này...) và bấm nút <b>'Kích Hoạt AI Phân Tích & Chuẩn Đoán Lệnh'</b> để nhận chuẩn đoán kỷ luật toàn diện!
-            </div>
-            <button class="btn btn-primary" onclick="runAiTradeReview()">
-              <span>🚀</span> Bắt Đầu Review Ngay
-            </button>
-          </div>
-
-          <!-- AI Review Results Container (Populated dynamically) -->
-          <div id="ai-review-result-container" style="display: none;">
-            <!-- Rendered by journal.js -->
-          </div>
-
-          <!-- Dedicated AI Trade Coach Interactive Console -->
-          <div class="card" style="margin-top: 18px; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(56, 189, 248, 0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 13.5px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+          <!-- Collapsible AI Trade Coach Console -->
+          <div class="coach-card">
+            <div class="coach-header" id="coach-toggle-header" onclick="toggleCoachCollapse()">
+              <div style="font-size: 13.5px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
                 <span>🧠</span> Tham Vấn Trực Tiếp Cùng AI Trade Coach (Phân Tích Lệnh & Tâm Lý Kỷ Luật)
               </div>
-              <button class="btn btn-outline" style="font-size: 11px; padding: 3px 8px;" onclick="clearAiCoachHistory()">🗑️ Xóa Lịch Sử</button>
-            </div>
-
-            <!-- Chat Messages History Container -->
-            <div id="ai-coach-chat-messages" style="display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; padding: 14px; background: #070a10; border: 1px solid var(--border-color); border-radius: 9px;">
-              <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px;">
-                🤖 Hãy đặt câu hỏi cho AI Trade Coach về các lệnh đã vào, lệnh đang mở, hoặc cách khắc phục lỗi tâm lý (Ví dụ: <i>"Đánh giá chi tiết lệnh BTC #1 của tôi"</i>, <i>"Lệnh ETH đang lãi có nên chốt không?"</i>, <i>"Làm sao dừng thói quen gỡ lệnh sau khi lỗ?"</i>)...
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="btn btn-outline" style="font-size: 11px; padding: 3px 8px;" onclick="event.stopPropagation(); clearAiCoachHistory()">🗑️ Xóa Chat</button>
+                <span id="coach-chevron" style="font-size: 12px; color: var(--text-muted); transition: transform 0.2s;">▼</span>
               </div>
             </div>
 
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="ai-coach-prompt-input" class="input-field" placeholder="Nhập câu hỏi tham vấn cho AI Coach (Ví dụ: Lệnh #1 của tôi sai ở đâu?)..." onkeydown="if(event.key==='Enter') runAiCoachPrompt()">
-              <button class="btn btn-primary" id="btn-submit-ai-coach" onclick="runAiCoachPrompt()" style="flex-shrink: 0;">
-                <span>⚡</span> Gửi Câu Hỏi
-              </button>
+            <div class="coach-body" id="coach-body-content" style="display: none;">
+              <!-- Chat Messages History Container -->
+              <div id="ai-coach-chat-messages" style="display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; padding: 14px; background: #070a10; border: 1px solid var(--border-color); border-radius: 9px;">
+                <div style="color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px;">
+                  🤖 Hãy đặt câu hỏi cho AI Trade Coach về các lệnh đã vào, lệnh đang mở, hoặc cách khắc phục lỗi tâm lý (Ví dụ: <i>"Đánh giá chi tiết lệnh BTC #1 của tôi"</i>, <i>"Lệnh ETH đang lãi có nên chốt không?"</i>, <i>"Làm sao dừng thói quen gỡ lệnh sau khi lỗ?"</i>)...
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="ai-coach-prompt-input" class="input-field" placeholder="Nhập câu hỏi tham vấn cho AI Coach (Ví dụ: Lệnh #1 của tôi sai ở đâu?)..." onkeydown="if(event.key==='Enter') runAiCoachPrompt()">
+                <button class="btn btn-primary" id="btn-submit-ai-coach" onclick="runAiCoachPrompt()" style="flex-shrink: 0; padding: 8px 18px;">
+                  <span>⚡</span> Gửi Câu Hỏi
+                </button>
+              </div>
             </div>
           </div>
 
@@ -468,16 +490,18 @@
       <section id="tab-news" class="tab-pane">
         
         <!-- Module 4 Sub-Tabs Navigation Header -->
-        <div class="news-subtab-bar" style="display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; flex-wrap: wrap;">
-          <button class="nav-tab active" id="btn-news-subtab-analyze" onclick="switchNewsSubTab('analyze')" style="padding: 8px 16px; font-size: 13px;">
-            <span>⚡</span> 1. Phân Tích Đồng Coin & Kích Hoạt Terminal AGY
-          </button>
-          <button class="nav-tab" id="btn-news-subtab-chat" onclick="switchNewsSubTab('chat')" style="padding: 8px 16px; font-size: 13px;">
-            <span>💬</span> 2. Chat & Tham Vấn Chiến Lược AGY
-          </button>
-          <button class="nav-tab" id="btn-news-subtab-feed" onclick="switchNewsSubTab('feed')" style="padding: 8px 16px; font-size: 13px;">
-            <span>📰</span> 3. Toàn Bộ Bài Báo Toàn Cầu 100% Chính Xác
-          </button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+          <div class="sub-tab-group">
+            <button class="sub-tab-btn active" id="btn-news-subtab-analyze" onclick="switchNewsSubTab('analyze')">
+              <span>⚡</span> 1. Phân Tích Đồng Coin & Terminal AGY
+            </button>
+            <button class="sub-tab-btn" id="btn-news-subtab-chat" onclick="switchNewsSubTab('chat')">
+              <span>💬</span> 2. Chat & Tham Vấn Chiến Lược AGY
+            </button>
+            <button class="sub-tab-btn" id="btn-news-subtab-feed" onclick="switchNewsSubTab('feed')">
+              <span>📰</span> 3. Toàn Bộ Bài Báo Toàn Cầu
+            </button>
+          </div>
         </div>
 
         <!-- ================================================== -->

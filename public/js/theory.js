@@ -518,3 +518,16 @@ function runCalculator() {
   document.getElementById('calc-res-pos-size').innerText = `$${posSizeUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   document.getElementById('calc-res-rr').innerText = rrRatio;
 }
+
+// Explicit Global Window Bindings
+if (typeof window !== 'undefined') {
+  window.loadTheoryTOC = loadTheoryTOC;
+  window.loadChapterDetail = loadChapterDetail;
+  window.navigateChapter = navigateChapter;
+  window.switchTheorySubTab = switchTheorySubTab;
+  window.openGlossaryModal = openGlossaryModal;
+  window.filterGlossary = filterGlossary;
+  window.openCalculatorModal = openCalculatorModal;
+  window.runCalculator = runCalculator;
+  window.calculatePositionSize = runCalculator;
+}

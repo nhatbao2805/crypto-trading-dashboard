@@ -79,6 +79,12 @@ db.exec(`
     response TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS practice_progress (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    stats_data TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 `);
 
 const dbManager = {
@@ -488,6 +494,32 @@ const dbManager = {
     } else {
       db.prepare('DELETE FROM terminal_chats').run();
     }
+    return true;
+  },
+
+  // --- PRACTICE PROGRESS SYNC ---
+  getPracticeProgress() {
+    try {
+      const stmt = db.prepare('SELECT stats_data FROM practice_progress WHERE id = 1');
+      const row = stmt.get();
+      if (row && row.stats_data) {
+        return JSON.parse(row.stats_data);
+      }
+    } catch (e) {
+      console.warn('Error reading practice_progress:', e.message);
+    }
+    return null;
+  },
+
+  savePracticeProgress(statsData) {
+    const now = new Date().toISOString();
+    const dataStr = typeof statsData === 'string' ? statsData : JSON.stringify(statsData);
+    const stmt = db.prepare(`
+      INSERT INTO practice_progress (id, stats_data, updated_at)
+      VALUES (1, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET stats_data = excluded.stats_data, updated_at = excluded.updated_at
+    `);
+    stmt.run(dataStr, now);
     return true;
   }
 };

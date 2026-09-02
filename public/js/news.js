@@ -866,13 +866,32 @@ async function runCustomAgyPrompt() {
 }
 
 async function clearAgyChatHistory() {
-  if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử đoạn chat với AGY Terminal?')) return;
-  try {
-    await fetch('/api/agy/history/clear', { method: 'POST' });
-    loadAgyChatHistory();
-    showToast('Đã xóa toàn bộ lịch sử chat!', 'info');
-  } catch (e) {
-    showToast('Không thể xóa lịch sử chat: ' + e.message, 'error');
+  if (typeof showConfirmModal === 'function') {
+    showConfirmModal({
+      title: '🗑️ Xóa Lịch Sử Chat AGY',
+      message: 'Toàn bộ lịch sử hội thoại và tham vấn chiến lược cùng AGY Terminal sẽ bị xóa vĩnh viễn. Bạn có chắc chắn muốn tiếp tục?',
+      confirmText: 'Xóa Lịch Sử',
+      cancelText: 'Hủy Bỏ',
+      confirmClass: 'btn-danger',
+      onConfirm: async () => {
+        try {
+          await fetch('/api/agy/history/clear', { method: 'POST' });
+          loadAgyChatHistory();
+          showToast('Đã xóa toàn bộ lịch sử chat!', 'info');
+        } catch (e) {
+          showToast('Không thể xóa lịch sử chat: ' + e.message, 'error');
+        }
+      }
+    });
+  } else {
+    if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử đoạn chat với AGY Terminal?')) return;
+    try {
+      await fetch('/api/agy/history/clear', { method: 'POST' });
+      loadAgyChatHistory();
+      showToast('Đã xóa toàn bộ lịch sử chat!', 'info');
+    } catch (e) {
+      showToast('Không thể xóa lịch sử chat: ' + e.message, 'error');
+    }
   }
 }
 
@@ -880,3 +899,21 @@ async function clearAgyChatHistory() {
 document.addEventListener('DOMContentLoaded', () => {
   loadAgyChatHistory();
 });
+
+// Explicit Global Window Bindings
+if (typeof window !== 'undefined') {
+  window.switchNewsSubTab = switchNewsSubTab;
+  window.runCoinNewsAnalysis = runCoinNewsAnalysis;
+  window.selectQuickCoin = selectQuickCoin;
+  window.quickAnalyze = selectQuickCoin;
+  window.runCustomAgyPrompt = runCustomAgyPrompt;
+  window.submitAgyChatMessage = typeof submitAgyChatMessage === 'function' ? submitAgyChatMessage : runCustomAgyPrompt;
+  window.clearAgyChatHistory = clearAgyChatHistory;
+  window.loadAgyChatHistory = loadAgyChatHistory;
+  window.loadGlobalNewsFeed = loadGlobalNewsFeed;
+  window.filterFeedCategory = filterFeedCategory;
+  window.filterFeedImpact = filterFeedImpact;
+  window.searchGlobalNewsFeed = searchGlobalNewsFeed;
+  window.openArticleDetailModal = openArticleDetailModal;
+  window.copyArticleSummary = copyArticleSummary;
+}

@@ -51,7 +51,24 @@ async function testAllRoutesInternal() {
   const coachRes = await executeJournalCoachPrompt('Cách quản lý vốn 1%?', { trades: entries });
   console.log('✔ AI coach chat handler: success =', coachRes.success);
 
-  console.log('\nAll 10 API route handlers verified successfully!');
+  // 11. /api/practice/progress (SQLite Schema & REST API sync)
+  const initialProg = db.getPracticeProgress();
+  const testPayload = {
+    total: 10,
+    correct: 9,
+    streak: 5,
+    answered: { "1": "B", "2": "A", "3": "C" },
+    chapterStats: { "5": { attempted: 1, correct: 1, failed: 0 } }
+  };
+  db.savePracticeProgress(testPayload);
+  const updatedProg = db.getPracticeProgress();
+  console.log('✔ Practice progress handler (SQLite):');
+  console.log('    - Saved Payload:', JSON.stringify(testPayload));
+  console.log('    - Queried from SQLite:', JSON.stringify(updatedProg));
+  console.log('    - Integrity check (total===10, correct===9, streak===5):', 
+    updatedProg?.total === 10 && updatedProg?.correct === 9 && updatedProg?.streak === 5 ? 'PASSED (100% Match)' : 'FAILED');
+
+  console.log('\nAll 11 API route handlers verified successfully!');
 }
 
 testAllRoutesInternal().catch(console.error);

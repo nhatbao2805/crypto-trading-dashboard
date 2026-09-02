@@ -979,8 +979,8 @@ const practiceScenarios = [
   {
     "id": 14,
     "chapterId": 2,
-    "level": "intermediate",
-    "levelLabel": "⚡ Trung Bình",
+    "level": "basic",
+    "levelLabel": "🌱 Cơ Bản",
     "category": "wallet_security",
     "categoryName": "🪙 Spot vs Futures & Đòn Bẩy (Chương 2)",
     "title": "Case Study 14: Thảm Họa Đòn Bẩy Cao x50 Khi Giao Dịch Futures Thay Vì Spot",
@@ -1014,8 +1014,8 @@ const practiceScenarios = [
   {
     "id": 15,
     "chapterId": 3,
-    "level": "intermediate",
-    "levelLabel": "⚡ Trung Bình",
+    "level": "basic",
+    "levelLabel": "🌱 Cơ Bản",
     "category": "orderbook_liquidity",
     "categoryName": "📊 Khớp Lệnh & Bể Thanh Khoản (Chương 3)",
     "title": "Case Study 15: Phân Biệt Lệnh Limit vs Lệnh Market Trong Pha Biến Động Lớn",
@@ -1630,10 +1630,50 @@ let currentFilterCategory = 'all';
 let currentFilterLevel = 'all';
 let currentFilterChapter = 'all';
 
-function initPracticeModule() {
+async function initPracticeModule() {
+  // Load saved progress from localStorage (Bug 5 fix)
+  const saved = localStorage.getItem('practiceStats');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') {
+        practiceStats = {
+          total: parsed.total || 0,
+          correct: parsed.correct || 0,
+          streak: parsed.streak || 0,
+          answered: parsed.answered || {},
+          chapterStats: parsed.chapterStats || {}
+        };
+      }
+    } catch (e) {
+      console.warn('Could not load practiceStats from localStorage:', e);
+    }
+  }
+
+  // Auto-generate sequential 1-based IDs on module load to prevent ID collisions (Bug 1 fix)
+  practiceScenarios.forEach((s, idx) => {
+    s.id = idx + 1;
+  });
+
   renderPracticeStats();
   renderPracticeCategoryFilters();
   loadCurrentScenario();
+
+  // Try sync with backend SQLite if available
+  try {
+    const res = await fetch('/api/practice/progress');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.progress && Object.keys(data.progress.answered || {}).length > Object.keys(practiceStats.answered || {}).length) {
+        practiceStats = data.progress;
+        try { localStorage.setItem('practiceStats', JSON.stringify(practiceStats)); } catch(e) {}
+        renderPracticeStats();
+        loadCurrentScenario();
+      }
+    }
+  } catch (err) {
+    // offline or static mode fallback is fine
+  }
 }
 
 function renderPracticeStats() {
@@ -1673,6 +1713,29 @@ function renderPracticeCategoryFilters() {
     return '<button class="coin-pill-btn ' + activeClass + '" onclick="filterPracticeCategory(\'' + cat.id + '\')">' + cat.name + '</button>';
   }).join('');
 
+  // Dynamically compute available chapters from practiceScenarios (Bug 4 fix)
+  const availableChapters = [...new Set(practiceScenarios.map(s => s.chapterId))].sort((a, b) => a - b);
+  const chapterTitles = {
+    1: 'Chương 1: Bản Chất Blockchain & Lưu Trữ',
+    2: 'Chương 2: Phân Loại Coin, Token & Ví',
+    3: 'Chương 3: Cơ Chế Khớp Lệnh & Order Book',
+    4: 'Chương 4: Đọc Nến Nhật & Price Action',
+    5: 'Chương 5: Kháng Cự, Hỗ Trợ & Thanh Khoản',
+    6: 'Chương 6: Cấu Trúc Thị Trường & Xu Hướng',
+    7: 'Chương 7: Phân Tích Đa Khung Thời Gian',
+    8: 'Chương 8: Volume, Chỉ Báo Kỹ Thuật & Phái Sinh',
+    9: 'Chương 9: Bẫy Cá Mập & Wyckoff',
+    10: 'Chương 10: Quản Trị Vốn & Kiểm Soát Rủi Ro',
+    11: 'Chương 11: SMC Nâng Cao & Smart Money',
+    12: 'Chương 12: Lộ Trình Trader Độc Lập'
+  };
+
+  const chapterOptions = availableChapters.map(ch => {
+    const isSelected = String(currentFilterChapter) === String(ch) ? 'selected' : '';
+    const title = chapterTitles[ch] || `Chương ${ch}`;
+    return `<option value="${ch}" ${isSelected}>${title}</option>`;
+  }).join('');
+
   container.innerHTML = 
     '<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">' +
       '<div style="display: flex; gap: 6px; flex-wrap: wrap;">' + catBtns + '</div>' +
@@ -1680,28 +1743,17 @@ function renderPracticeCategoryFilters() {
         '<div style="display: flex; align-items: center; gap: 6px;">' +
           '<span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Độ khó:</span>' +
           '<select class="select-field" style="width: 140px; padding: 4px 8px; font-size: 12px;" onchange="filterPracticeLevel(this.value)">' +
-            '<option value="all" ' + (currentFilterLevel === 'all' ? 'selected' : '') + '>Tất cả cấp độ</option>' +
-            '<option value="basic" ' + (currentFilterLevel === 'basic' ? 'selected' : '') + '>🌱 Cơ Bản</option>' +
-            '<option value="intermediate" ' + (currentFilterLevel === 'intermediate' ? 'selected' : '') + '>⚡ Trung Bình</option>' +
-            '<option value="advanced" ' + (currentFilterLevel === 'advanced' ? 'selected' : '') + '>🔥 Nâng Cao</option>' +
+            '<option value="all" ' + (currentFilterLevel === 'all' ? 'selected' : '') + '>Tất cả cấp độ (30)</option>' +
+            '<option value="basic" ' + (currentFilterLevel === 'basic' ? 'selected' : '') + '>🌱 Cơ Bản (10)</option>' +
+            '<option value="intermediate" ' + (currentFilterLevel === 'intermediate' ? 'selected' : '') + '>⚡ Trung Bình (12)</option>' +
+            '<option value="advanced" ' + (currentFilterLevel === 'advanced' ? 'selected' : '') + '>🔥 Nâng Cao (8)</option>' +
           '</select>' +
         '</div>' +
         '<div style="display: flex; align-items: center; gap: 6px;">' +
           '<span style="font-size: 11.5px; color: var(--text-muted); font-weight: 700;">Ôn tập theo chương:</span>' +
-          '<select class="select-field" style="width: 220px; padding: 4px 8px; font-size: 12px;" onchange="filterPracticeChapter(this.value)">' +
-            '<option value="all" ' + (currentFilterChapter === 'all' ? 'selected' : '') + '>Tất cả 12 Chương</option>' +
-            '<option value="1" ' + (currentFilterChapter === '1' ? 'selected' : '') + '>Chương 1: Bản Chất Blockchain</option>' +
-            '<option value="2" ' + (currentFilterChapter === '2' ? 'selected' : '') + '>Chương 2: Phân Loại Coin & Ví</option>' +
-            '<option value="3" ' + (currentFilterChapter === '3' ? 'selected' : '') + '>Chương 3: Order Book & Cung Cầu</option>' +
-            '<option value="4" ' + (currentFilterChapter === '4' ? 'selected' : '') + '>Chương 4: Các Mô Hình Nến</option>' +
-            '<option value="5" ' + (currentFilterChapter === '5' ? 'selected' : '') + '>Chương 5: Hỗ Trợ & Kháng Cự</option>' +
-            '<option value="6" ' + (currentFilterChapter === '6' ? 'selected' : '') + '>Chương 6: Cấu Trúc Thị Trường</option>' +
-            '<option value="7" ' + (currentFilterChapter === '7' ? 'selected' : '') + '>Chương 7: Đa Khung 4H-1H-15m</option>' +
-            '<option value="8" ' + (currentFilterChapter === '8' ? 'selected' : '') + '>Chương 8: Volume, RSI, Phái Sinh</option>' +
-            '<option value="9" ' + (currentFilterChapter === '9' ? 'selected' : '') + '>Chương 9: Bẫy Cá Mập & Wyckoff</option>' +
-            '<option value="10" ' + (currentFilterChapter === '10' ? 'selected' : '') + '>Chương 10: Quản Lý Vốn 1% & R:R</option>' +
-            '<option value="11" ' + (currentFilterChapter === '11' ? 'selected' : '') + '>Chương 11: SMC & FVG</option>' +
-            '<option value="12" ' + (currentFilterChapter === '12' ? 'selected' : '') + '>Chương 12: Lộ Trình & Nhật Ký</option>' +
+          '<select class="select-field" style="width: 250px; padding: 4px 8px; font-size: 12px;" onchange="filterPracticeChapter(this.value)">' +
+            '<option value="all" ' + (currentFilterChapter === 'all' ? 'selected' : '') + '>Tất cả ' + availableChapters.length + ' Chương có bài tập</option>' +
+            chapterOptions +
           '</select>' +
         '</div>' +
         '<span style="margin-left: auto; font-size: 11.5px; color: #38bdf8; font-weight: 700;">' +
@@ -1863,6 +1915,22 @@ function submitPracticeAnswer(scenarioId, chosenOptionId) {
     if (window.showToast) showToast('❌ Chưa chính xác! Hãy đọc kỹ phần giải phẫu hành vi bên dưới để rút kinh nghiệm.', 'warning');
   }
 
+  // Persist to localStorage (Bug 5 fix)
+  try {
+    localStorage.setItem('practiceStats', JSON.stringify(practiceStats));
+  } catch (err) {
+    console.warn('Could not save practiceStats to localStorage:', err);
+  }
+
+  // Background sync to SQLite if route is active
+  try {
+    fetch('/api/practice/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(practiceStats)
+    }).catch(() => {});
+  } catch (err) {}
+
   renderPracticeStats();
   loadCurrentScenario();
 }
@@ -1877,18 +1945,48 @@ function navigatePracticeScenario(dir) {
 }
 
 function resetPracticeQuiz() {
-  if (!confirm('Bạn có muốn đặt lại toàn bộ tiến độ bài tập để thử thách lại từ đầu không?')) return;
-  practiceStats = {
-    total: 0,
-    correct: 0,
-    streak: 0,
-    answered: {},
-    chapterStats: {}
-  };
-  currentScenarioIndex = 0;
-  renderPracticeStats();
-  loadCurrentScenario();
-  if (window.showToast) showToast('Đã đặt lại 30 Case Study thực hành.', 'info');
+  if (typeof window.showConfirmModal === 'function') {
+    window.showConfirmModal({
+      title: '⚠️ Đặt Lại Toàn Bộ Tiến Độ',
+      message: 'Toàn bộ điểm số, chuỗi đúng (streak) và lịch sử 30 Case Study sẽ bị xóa vĩnh viễn. Bạn có chắc chắn muốn làm lại từ đầu?',
+      confirmText: 'Đặt Lại Từ Đầu',
+      cancelText: 'Hủy Bỏ',
+      confirmClass: 'btn-danger',
+      onConfirm: () => {
+        practiceStats.total = 0;
+        practiceStats.correct = 0;
+        practiceStats.streak = 0;
+        practiceStats.answered = {};
+        practiceStats.chapterStats = {};
+        try {
+          localStorage.removeItem('practiceStats');
+          fetch('/api/practice/progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(practiceStats)
+          }).catch(() => {});
+        } catch(e) {}
+        currentScenarioIndex = 0;
+        renderPracticeStats();
+        loadCurrentScenario();
+        if (window.showToast) showToast('Đã đặt lại toàn bộ 30 Case Study.', 'info');
+      }
+    });
+  } else {
+    if (!confirm('Bạn có muốn đặt lại toàn bộ tiến độ bài tập để thử thách lại từ đầu không?')) return;
+    practiceStats.total = 0;
+    practiceStats.correct = 0;
+    practiceStats.streak = 0;
+    practiceStats.answered = {};
+    practiceStats.chapterStats = {};
+    try {
+      localStorage.removeItem('practiceStats');
+    } catch(e) {}
+    currentScenarioIndex = 0;
+    renderPracticeStats();
+    loadCurrentScenario();
+    if (window.showToast) showToast('Đã đặt lại 30 Case Study thực hành.', 'info');
+  }
 }
 
 if (typeof window !== 'undefined') {
@@ -1902,5 +2000,15 @@ if (typeof window !== 'undefined') {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { practiceScenarios, practiceStats };
+  module.exports = {
+    practiceScenarios,
+    practiceStats,
+    initPracticeModule,
+    submitPracticeAnswer,
+    navigatePracticeScenario,
+    filterPracticeCategory,
+    filterPracticeLevel,
+    filterPracticeChapter,
+    resetPracticeQuiz
+  };
 }
