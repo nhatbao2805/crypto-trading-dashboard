@@ -1,308 +1,199 @@
-# 🚀 Crypto Trading Dashboard & AI Multi-Agent Council
+# 🪙 Sổ Tay & Ứng Dụng Hỗ Trợ Giao Dịch Tiền Điện Tử (Crypto Trading Dashboard)
 
-> **Hệ Thống Phân Tích & Quản Trị Giao Dịch Tiền Điện Tử Toàn Diện**  
-> Tích hợp giáo trình thực chiến A-Z, luyện tập phân tích kỹ thuật, nhật ký giao dịch kỷ luật kèm upload biểu đồ, bộ lọc tin tức AGY Terminal và Hội đồng AI Trader đa tác nhân.
-
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-19.2-blue.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-6.x-purple.svg)](https://vitejs.dev/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.x-38bdf8.svg)](https://tailwindcss.com/)
-[![SQLite](https://img.shields.io/badge/Database-SQLite%203-003B57.svg)](https://sqlite.org/)
-[![License](https://img.shields.io/badge/License-ISC-yellow.svg)](LICENSE)
+> **Công cụ hỗ trợ học tập, rèn luyện kỷ luật và đồng hành cùng Trader trong từng quyết định đầu tư.**  
+> Tích hợp: 📘 Giáo trình thực chiến A-Z • 📝 Luyện tập nhận định biểu đồ • 📓 Nhật ký giao dịch kèm ảnh chart • 📰 Bộ lọc tin tức tác động thị trường • 🤖 Hội đồng cố vấn AI đa góc nhìn • 💼 Giao dịch mô phỏng (Paper Trading) không rủi ro.
 
 ---
 
-## 📑 Mục Lục
+## 🎯 Ứng Dụng Này Dành Cho Ai?
 
-1. [Giới Thiệu Tổng Quan](#-giới-thiệu-tổng-quan)
-2. [Các Tính Năng Cốt Lõi](#-các-tính-năng-cốt-lõi)
-3. [Kiến Trúc Kỹ Thuật (Tech Stack)](#-kiến-trúc-kỹ-thuật-tech-stack)
-4. [Yêu Cầu Hệ Thống](#-yêu-cầu-hệ-thống)
-5. [Hướng Dẫn Cài Đặt (Installation)](#-hướng-dẫn-cài-đặt-installation)
-6. [Hướng Dẫn Khởi Chạy & Sử Dụng (Usage)](#-hướng-dẫn-khởi-chạy--sử-dụng-usage)
-7. [Các Lệnh Scripts Có Sẵn](#-các-lệnh-scripts-có-sẵn)
-8. [Cấu Trúc Thư Mục Dự Án](#-cấu-trúc-thư-mục-dự-án)
-9. [Tài Liệu API Endpoints](#-tài-liệu-api-endpoints)
-10. [Khắc Phục Sự Cố Thường Gặp (Troubleshooting)](#-khắc-phục-sự-cố-thường-gặp-troubleshooting)
-11. [Đóng Góp & Bản Quyền](#-đóng-góp--bản-quyền)
+- **Người mới bắt đầu (Beginner)**: Cần một lộ trình bài bản từ con số 0, nắm rõ bản chất thị trường, biểu đồ nến, các bẫy giá của Cá mập và tránh mất tiền vì thiếu kiến thức.
+- **Trader muốn rèn luyện tính kỷ luật**: Đã biết giao dịch nhưng thường xuyên thua lỗ do FOMO, vào lệnh theo cảm xúc, không cài Stop Loss hoặc không có nơi ghi chép, rút kinh nghiệm.
+- **Nhà đầu tư cần trợ lý phân tích**: Muốn có một góc nhìn phản biện khách quan (kỹ thuật, vĩ mô, rủi ro) trước khi đưa ra quyết định vào lệnh.
 
 ---
 
-## 🌟 Giới Thiệu Tổng Quan
+## ⚡ Hướng Dẫn Cài Đặt & Mở Ứng Dụng Nhanh (3 Bước Đơn Giản)
 
-**Crypto Trading Dashboard** là một nền tảng all-in-one được thiết kế dành cho nhà giao dịch tiền điện tử (từ người mới bắt đầu đến trader chuyên nghiệp). Dự án giải quyết các vấn đề then chốt:
-- **Thiếu kiến thức bài bản**: Cung cấp cẩm nang 12 chương từ cốt lõi Blockchain, nến đảo chiều, phân tích đa khung thời gian (4H - 1H - 15m) đến Smart Money Concepts (SMC) và nhận diện bẫy Cá mập (Market Maker).
-- **Giao dịch theo cảm xúc**: Hệ thống **Trading Journal** bắt buộc nhập lý do, confluences, quản lý vốn và tự động chấm điểm kỷ luật giao dịch (**Discipline Auditor**).
-- **Nhiễu loạn thông tin**: **AGY News Terminal** thu thập, phân loại và chấm điểm tác động (Impact Score) của tin tức lên giá thị trường.
-- **Thiếu góc nhìn phản biện khách quan**: Hội đồng **AI Multi-Agent Council** gồm 4 chuyên gia AI độc lập (Technical, Macro, Risk, Validator) tranh luận và đưa ra phán quyết Master Verdict trước khi vào lệnh.
+Bạn không cần phải có kiến thức lập trình phức tạp, chỉ cần làm theo 3 bước sau để mở và sử dụng ứng dụng ngay trên máy tính của mình:
 
----
+### Bước 1: Cài đặt Node.js
+Đảm bảo máy tính của bạn đã có **Node.js** (phiên bản 18 trở lên).  
+👉 Nếu chưa có, bạn chỉ cần tải bản LTS tại trang chủ [nodejs.org](https://nodejs.org/) và cài đặt như phần mềm thông thường.
 
-## 🎯 Các Tính Năng Cốt Lõi
-
-### 1. 📘 Giáo Trình Thực Chiến Toàn Tập (Theory Module)
-- 12 chương lý thuyết trực quan với sơ đồ Mermaid, bảng so sánh và mô hình nến ASCII/Minh họa.
-- Tìm kiếm tức thì theo từ khóa, thuật ngữ chuyên ngành (SMC, Order Block, Liquidity Pool, Killzones...).
-- Theo dõi tiến độ đọc và lưu dấu chương đang học.
-
-### 2. 📝 Luyện Tập Kỹ Thuật & Tình Huống (Practice Quiz & Analysis)
-- Bộ câu hỏi trắc nghiệm tình huống thực tế (Price Action, phân tích đa khung thời gian).
-- Giải thích chi tiết đáp án đúng/sai ngay sau khi chọn.
-- Thống kê tỷ lệ chính xác, chuỗi thắng (streak) và hiệu suất học tập.
-
-### 3. 📓 Nhật Ký Giao Dịch Kỷ Luật (Trading Journal & Discipline Auditor)
-- Ghi chép chi tiết từng lệnh: Coin, Vị thế (Long/Short), Entry, Stop Loss, Take Profit, Đòn bẩy, Kích thước lệnh, Cảm xúc khi vào lệnh.
-- **Hỗ trợ tải và lưu ảnh chụp màn hình biểu đồ (TradingView)** trực tiếp vào nhật ký.
-- Tự động tính toán PnL ($ và %) và tỷ lệ Risk:Reward (R:R).
-- **Bộ Chấm Điểm Kỷ Luật (Discipline Auditor)**: Đánh giá tuân thủ quy tắc Stop Loss, không FOMO, bảo toàn vốn 1-2%.
-
-### 4. 📰 AGY News Impact Terminal
-- Bộ lọc tin tức theo thời gian thực cho các đồng coin phổ biến (BTC, ETH, SOL, BNB, SUI, DOGE...).
-- Phân loại cấp độ tác động: `HIGH` (Đỏ), `MEDIUM` (Vàng), `LOW` (Xanh lam).
-- Phân tích chất xúc tác (Catalysts) và khuyến nghị hành động tương ứng.
-
-### 5. 🤖 Hội Đồng AI Đa Tác Nhân (AI Multi-Agent Council)
-- **Technical Agent**: Phân tích cấu trúc sóng, vùng hỗ trợ/kháng cự, chỉ báo RSI, MACD, MA.
-- **Macro Agent**: Đánh giá bối cảnh chu kỳ dòng tiền, tin tức vĩ mô, xu hướng Bitcoin Dominance.
-- **Risk Agent**: Kiểm soát rủi ro, cảnh báo đòn bẩy cao, ép buộc Stop Loss chặt chẽ.
-- **Validator Agent**: Phản biện các điểm mù, kiểm tra thiên kiến xác nhận (Confirmation Bias).
-- **Master Trader**: Tổng hợp tranh luận và đưa ra xác suất thành công (%) kèm phán quyết cuối cùng.
-
-### 6. 💼 Giao Dịch Mô Phỏng (Paper Trading Simulator)
-- Tài khoản demo 10,000 USDT khởi điểm.
-- Mở/đóng vị thế theo thời gian thực không rủi ro vốn thật.
-- Thử nghiệm các giả thuyết giao dịch và học hỏi từ sai lầm.
-
----
-
-## 🛠 Kiến Trúc Kỹ Thuật (Tech Stack)
-
-| Thành Phần | Công Nghệ Sử Dụng | Vai Trò |
-| :--- | :--- | :--- |
-| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, Lucide Icons, Chart.js | Giao diện hiện đại, responsive, trực quan hóa biểu đồ và hiệu năng cao |
-| **Backend** | Node.js (v22+), Express-style native HTTP Server | Xử lý RESTful APIs, phân tích dữ liệu, upload ảnh đa phương tiện |
-| **Database** | SQLite (`node:sqlite` DatabaseSync) | Cơ sở dữ liệu nhẹ, không cần cài server rời, tự động tạo bảng |
-| **AI Engine** | AGY Multi-Agent Architecture | Động cơ phân tích đa góc nhìn phản biện độc lập |
-
----
-
-## 📋 Yêu Cầu Hệ Thống
-
-Trước khi bắt đầu cài đặt, máy tính của bạn cần có:
-- **Node.js**: Phiên bản `>= 18.0.0` (Khuyến nghị **Node.js 20** hoặc **Node.js 22 LTS**).
-  - Kiểm tra phiên bản: `node -v`
-- **NPM**: Phiên bản `>= 9.0.0` (đi kèm sẵn với Node.js).
-  - Kiểm tra phiên bản: `npm -v`
-- **Git**: Đã cài đặt trên máy.
-
----
-
-## ⚙️ Hướng Dẫn Cài Đặt (Installation)
-
-### Bước 1: Tải mã nguồn về máy (Clone Repository)
+### Bước 2: Tải dự án về máy
+Mở cửa sổ dòng lệnh (**Terminal** trên macOS hoặc **Command Prompt / PowerShell** trên Windows), dán các lệnh sau:
 
 ```bash
+# 1. Tải ứng dụng về máy
 git clone https://github.com/nhatbao2805/crypto-trading-dashboard.git
+
+# 2. Đi vào thư mục ứng dụng
 cd crypto-trading-dashboard
-```
-*(Nếu bạn đã có sẵn thư mục mã nguồn trên máy, chỉ cần mở terminal tại thư mục đó).*
 
-### Bước 2: Cài đặt các thư viện phụ thuộc (Dependencies)
-
-Chạy lệnh sau để cài đặt toàn bộ package cần thiết:
-
-```bash
+# 3. Cài đặt các thành phần cần thiết (chỉ chạy 1 lần đầu)
 npm install
 ```
 
-Quá trình này sẽ tự động tải các gói phụ thuộc cho cả giao diện Frontend (React, Vite, Tailwind CSS, Chart.js...) và Backend.
-
----
-
-## 🚀 Hướng Dẫn Khởi Chạy & Sử Dụng (Usage)
-
-Dự án cung cấp 2 phương thức khởi chạy tùy theo nhu cầu của bạn:
-
----
-
-### 👉 Cách 1: Khởi Chạy Trọn Gói (Production / Full-Stack Độc Lập) — *Khuyến Nghị*
-
-Đây là cách đơn giản nhất: Frontend được build thành tệp tĩnh và được server Node.js phục vụ trực tiếp tại cùng một cổng.
-
-#### 1. Biên dịch Frontend:
+### Bước 3: Mở ứng dụng để sử dụng
 ```bash
+# Biên dịch và khởi động ứng dụng
 npm run build
-```
-
-#### 2. Khởi động máy chủ:
-```bash
 npm start
 ```
-*(Hoặc dùng `npm run dev`)*
 
-#### 3. Mở trình duyệt và truy cập:
-```
-http://localhost:3000
-```
+Mở trình duyệt web bất kỳ (Google Chrome, Safari, Microsoft Edge, Brave...) và truy cập vào địa chỉ:
+👉 **`http://localhost:3000`**
 
-> **Ghi chú**: Cơ sở dữ liệu SQLite tại `data/dashboard.sqlite` và thư mục tải ảnh `uploads/` sẽ tự động được khởi tạo nếu chưa tồn tại.
+*(Khi không sử dụng nữa, bạn chỉ cần quay lại cửa sổ dòng lệnh và nhấn tổ hợp phím `Ctrl + C` để đóng ứng dụng).*
 
 ---
 
-### 👉 Cách 2: Khởi Chạy Chế Độ Phát Triển (Development Mode với Hot-Reload)
+## 🧭 Cẩm Nang Sử Dụng Chi Tiết Từng Tính Năng
 
-Nếu bạn muốn chỉnh sửa mã nguồn giao diện và xem kết quả tức thì (Hot Module Replacement):
-
-#### Cửa sổ Terminal 1 — Khởi chạy Backend API Server:
-```bash
-npm run dev
-```
-*Server API hoạt động tại: `http://localhost:3000`*
-
-#### Cửa sổ Terminal 2 — Khởi chạy Vite Dev Server:
-```bash
-npm run dev:vite
-```
-*Giao diện phát triển hoạt động tại: `http://localhost:5173`*
-
-> Vite đã được cấu hình proxy tự động chuyển tiếp các request `/api` và `/uploads` sang `http://localhost:3000`.
-
----
-
-### 👉 Cách 3: Sử Dụng AI Live Agent Terminal trên dòng lệnh (CLI)
-
-Nếu bạn muốn tương tác trực tiếp với Hội đồng AI thông qua cửa sổ dòng lệnh:
-
-```bash
-npm run agent:live
-```
-
----
-
-### 👉 Cách 4: Chạy Kiểm Thử (Run Tests)
-
-Dự án đi kèm bộ kiểm thử toàn diện để kiểm tra tính toàn vẹn của hệ thống:
-
-```bash
-# Chạy toàn bộ các bài kiểm thử
-npm run test:all
-
-# Hoặc chạy kiểm thử riêng biệt từng phần:
-npm run test:modular      # Kiểm thử kiến trúc module & database
-npm run test:integration  # Kiểm thử các endpoints API
-npm test                  # Kiểm thử toàn diện test_suite
-```
-
----
-
-## 📜 Các Lệnh Scripts Có Sẵn
-
-Dưới đây là bảng tổng hợp các lệnh trong `package.json`:
-
-| Lệnh | Ý Nghĩa / Mục Đích |
-| :--- | :--- |
-| `npm install` | Cài đặt các thư viện phụ thuộc |
-| `npm run build` | Kiểm tra kiểu TypeScript và build giao diện React bằng Vite vào thư mục `dist/` |
-| `npm start` | Khởi chạy máy chủ sản xuất (phục vụ cả API và giao diện tại port 3000) |
-| `npm run dev` | Khởi chạy máy chủ Backend |
-| `npm run dev:watch` | Khởi chạy máy chủ Backend với tính năng tự reload khi sửa file (`node --watch`) |
-| `npm run dev:vite` | Khởi chạy Vite Dev Server cho Frontend (`localhost:5173`) |
-| `npm run agent:live` | Khởi chạy Terminal tương tác trực tiếp với AI Trader |
-| `npm run test:all` | Chạy toàn bộ test suites (E2E, Modular, Integration) |
-| `npm run test:modular` | Chạy test kiến trúc modular và SQLite repositories |
-| `npm run test:integration` | Chạy test tích hợp các API endpoints |
-
----
-
-## 📂 Cấu Trúc Thư Mục Dự Án
+Giao diện ứng dụng được chia thành các khu vực chức năng rõ ràng ở thanh điều hướng bên trái:
 
 ```text
-├── Cam_Nang_Crypto_Toan_Tap_Cho_Nguoi_Moi.md # Giáo trình lý thuyết Crypto toàn tập (12 chương)
-├── server.js                               # Điểm khởi động máy chủ chính
-├── package.json                            # Cấu hình dự án và dependencies
-├── tsconfig.json                           # Cấu hình TypeScript cho dự án
-├── vite.config.ts                          # Cấu hình Vite & API proxy
-├── tailwind.config.js                      # Cấu hình Tailwind CSS
-├── index.html                              # File HTML gốc cho ứng dụng React
-│
-├── server/                                 # MÃ NGUỒN BACKEND MODULAR
-│   ├── app.js                              # Tạo HTTP server, middleware & routing
-│   ├── config/                             # Cấu hình Database SQLite & Constants
-│   ├── controllers/                        # Xử lý logic nghiệp vụ từng tính năng
-│   ├── middlewares/                        # Xử lý Static files, CORS, Error handling
-│   ├── models/                             # Data Access Layer (Repositories SQLite)
-│   │   ├── JournalRepository.js            # Quản lý nhật ký lệnh & audit kỷ luật
-│   │   ├── NotesRepository.js              # Quản lý ghi chú cá nhân
-│   │   ├── PaperTradeRepository.js         # Quản lý tài khoản & vị thế paper trade
-│   │   └── DebateRepository.js             # Lưu trữ lịch sử phân tích AI
-│   ├── routes/                             # Khai báo các API routes
-│   └── agents/                             # Kiến trúc AGY Multi-Agent Council
-│
-├── src/                                    # MÃ NGUỒN FRONTEND REACT + TYPESCRIPT
-│   ├── App.tsx                             # Component trung tâm quản lý tab điều hướng
-│   ├── main.tsx                            # Điểm gắn kết React vào DOM
-│   ├── index.css                           # Style toàn cục & cấu hình Tailwind
-│   ├── types/                              # Định nghĩa kiểu dữ liệu TypeScript
-│   └── components/                         # CÁC MODULE GIAO DIỆN
-│       ├── theory/                         # Giao diện đọc sách lý thuyết & từ điển
-│       ├── practice/                       # Giao diện trắc nghiệm tình huống
-│       ├── journal/                        # Giao diện nhật ký lệnh, upload ảnh & audit kỷ luật
-│       ├── news/                           # Giao diện AGY Terminal & phân tích tin tức
-│       ├── aitrader/                       # Giao diện Hội đồng AI phản biện đa tác nhân
-│       ├── humantrader/                    # Giao diện Paper Trading mô phỏng & dự đoán
-│       └── common/                         # Các components dùng chung (Modal, Button, Card...)
-│
-├── data/                                   # Nơi lưu trữ file CSDL SQLite (dashboard.sqlite)
-└── uploads/                                # Nơi lưu trữ ảnh chụp màn hình biểu đồ người dùng tải lên
+┌─────────────────────────────────────────────────────────────┐
+│ 🪙 CRYPTO TRADING DASHBOARD                                 │
+├──────────────┬──────────────────────────────────────────────┤
+│ 📘 Lý Thuyết │  Nội dung chi tiết từng tính năng hiển thị   │
+│ 📝 Luyện Tập │  tại khu vực chính màn hình ở đây...         │
+│ 📓 Nhật Ký   │                                              │
+│ 📰 Tin Tức   │                                              │
+│ 🤖 AI Trader │                                              │
+│ 💼 Demo/Sim  │                                              │
+└──────────────┴──────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📡 Tài Liệu API Endpoints
+### 1. 📘 Tab "Lý Thuyết" — Tự Học Crypto Từ Cơ Bản Đến Nâng Cao
 
-Hệ thống cung cấp sẵn các REST API phục vụ cho giao diện người dùng:
+Đây là cuốn giáo trình toàn diện gồm 12 chương được biên soạn thực tế, dễ hiểu:
 
-| Phương Thức | Đường Dẫn | Chức Năng |
-| :--- | :--- | :--- |
-| `GET` | `/api/theory` | Lấy danh mục 12 chương lý thuyết và từ điển thuật ngữ |
-| `GET` | `/api/theory/chapter/:id` | Lấy nội dung chi tiết của một chương |
-| `GET` | `/api/journal` | Lấy danh sách các lệnh đã ghi trong nhật ký |
-| `POST` | `/api/journal` | Thêm mới một nhật ký giao dịch |
-| `DELETE` | `/api/journal/:id` | Xóa một lệnh khỏi nhật ký |
-| `POST` | `/api/upload` | Tải lên ảnh chụp màn hình biểu đồ (Base64) |
-| `GET` | `/api/journal/stats` | Thống kê hiệu suất (Winrate, PnL, Tỷ lệ R:R) |
-| `GET` | `/api/paper-trading/account` | Lấy số dư và trạng thái tài khoản Paper Trading |
-| `POST` | `/api/paper-trading/position` | Mở vị thế giao dịch mô phỏng mới |
-| `POST` | `/api/ai/debate` | Kích hoạt hội đồng AI tranh luận và phán quyết về một đồng coin |
-| `GET` | `/api/news` | Lấy danh sách tin tức thị trường và điểm tác động |
+- **Các nội dung nổi bật**:
+  - **Chương 1 - 3**: Bản chất công nghệ Blockchain, tiền điện tử, ví lạnh/ví nóng, sàn Spot & Futures, sổ lệnh (Order Book) và bể thanh khoản.
+  - **Chương 4 - 6**: Nhận diện các mẫu hình nến đảo chiều quan trọng, xác định chuẩn xác vùng Hỗ trợ/Kháng cự, cấu trúc thị trường (đỉnh/đáy) và các bẫy phá vỡ giả (Fakeout).
+  - **Chương 7**: **Chuyên đề Đa khung thời gian (4H - 1H - 15m)** và khung giờ vàng giao dịch (Killzones).
+  - **Chương 9**: **7 dấu hiệu nhận biết Cá mập (Market Maker) thao túng & quét sàn**.
+  - **Chương 10 - 11**: Quản lý vốn sống còn (quy tắc 1-2%), tâm lý giao dịch và Từ điển thuật ngữ Smart Money Concepts (SMC, Order Block, Liquidity Pool...).
+- **Cách sử dụng**:
+  - Nhấp chuột vào từng chương ở menu bên trái để đọc nội dung.
+  - Bấm nút **"Từ Điển Thuật Ngữ"** trên thanh tiêu đề để mở nhanh bảng tra cứu giải nghĩa các từ viết tắt chuyên ngành.
 
 ---
 
-## 🔧 Khắc Phục Sự Cố Thường Gặp (Troubleshooting)
+### 2. 📝 Tab "Luyện Tập" — Thử Tài Nhận Định Tình Huống Thị Trường
 
-### 1. Lỗi cổng đã được sử dụng (`EADDRINUSE: address already in use :::3000`)
-- **Nguyên nhân**: Một tiến trình khác (hoặc server cũ) đang chạy ngầm trên cổng 3000.
-- **Cách khắc phục**:
-  - **Cách 1 - Giải phóng cổng 3000**:
-    ```bash
-    kill -9 $(lsof -ti:3000)
-    ```
-  - **Cách 2 - Khởi chạy server trên cổng khác**:
-    ```bash
-    PORT=3005 npm start
-    ```
+Giúp bạn rèn luyện phản xạ đọc biểu đồ mà không phải trả giá bằng tiền thật:
 
-### 2. Giao diện báo lỗi không tải được API (`Network Error` hoặc `Failed to fetch`)
-- Hãy đảm bảo bạn đã khởi động Backend server (`npm start` hoặc `npm run dev`) trước khi truy cập hoặc sử dụng Vite dev server.
-
-### 3. Ảnh upload không hiển thị
-- Kiểm tra thư mục `uploads/` đã được tạo trong dự án chưa (hệ thống sẽ tự động tạo thư mục này khi server khởi động).
+- **Bộ câu hỏi tình huống thực tế**: Hệ thống đưa ra các tình huống nến, xu hướng, đa khung thời gian cụ thể.
+- **Kiểm tra kết quả ngay lập tức**: Khi bạn chọn phương án (Mua / Bán / Đứng ngoài), hệ thống sẽ báo ngay kết quả Đúng/Sai và giải thích cặn kẽ logic kỹ thuật tại sao nên hành động như vậy.
+- **Theo dõi tiến độ**: Xem số câu trả lời đúng, tỷ lệ chính xác và chuỗi đúng liên tiếp (Streak) để tự tin hơn trước khi giao dịch thực tế.
 
 ---
 
-## 🤝 Đóng Góp & Bản Quyền
+### 3. 📓 Tab "Nhật Ký Giao Dịch" (Trading Journal) — Trái Tim Của Kỷ Luật
 
-Dự án được xây dựng phục vụ mục đích học tập, rèn luyện tư duy giao dịch kỷ luật và ứng dụng trí tuệ nhân tạo hỗ trợ ra quyết định tài chính. Mọi đóng góp (Pull Request, Báo cáo lỗi) đều được hoan nghênh!
+> *"Nếu bạn không thể đo lường và ghi lại những gì mình làm, bạn sẽ không bao giờ cải thiện được kết quả giao dịch."*
 
-*Chúc bạn giao dịch kỷ luật và thành công trên thị trường crypto!* 🚀
+Đây là công cụ quan trọng nhất giúp bạn loại bỏ cảm xúc và nâng cao tỷ lệ thắng:
+
+#### ✍️ Cách ghi chép một lệnh giao dịch mới:
+1. Nhấn nút **"+ Thêm Lệnh Mới"**.
+2. Điền thông tin lệnh:
+   - Đồng coin giao dịch (BTC, ETH, SOL...).
+   - Vị thế: **LONG** (Kỳ vọng giá tăng) hoặc **SHORT** (Kỳ vọng giá giảm).
+   - Mức giá vào lệnh (**Entry**), mức giá cắt lỗ (**Stop Loss**), mức giá chốt lời (**Take Profit**).
+   - Đòn bẩy sử dụng và số tiền đầu tư.
+3. **Đính kèm ảnh chụp màn hình biểu đồ**:
+   - Bạn có thể chụp ảnh biểu đồ phân tích trên TradingView, sau đó bấm tải ảnh hoặc dán ảnh trực tiếp vào nhật ký. Sau này khi xem lại, bạn sẽ thấy rõ lúc đó mình vào lệnh vì lý do gì.
+4. Chọn cảm xúc lúc vào lệnh (Tự tin, Lo lắng, FOMO, Trả thù sàn...) và đánh dấu các quy tắc kỹ thuật bạn đã tuân thủ.
+5. Bấm **Lưu lệnh**. Hệ thống sẽ tự động tính toán tỷ lệ Lời:Lỗ (Risk:Reward - R:R) và lãi/lỗ (PnL) cho bạn.
+
+#### 🛡️ Discipline Auditor — Vị Giám Khảo Kỷ Luật Tự Động:
+- Tab **"Kiểm Toán Kỷ Luật"** sẽ phân tích lịch sử lệnh của bạn và chấm điểm kỷ luật trên thang điểm 100.
+- Ứng dụng sẽ thẳng thắn chỉ ra các sai lầm nguy hiểm:
+  - Bạn có hay quên đặt Stop Loss không?
+  - Bạn có rủi ro quá 2% tài khoản cho một lệnh không?
+  - Bạn có bị cuốn vào "giao dịch trả thù" (Revenge Trading) sau các lệnh thua không?
+
+#### 📝 Sổ tay ghi chú cá nhân (Notes):
+- Ghi lại các kinh nghiệm rút ra hàng tuần, chiến lược mới muốn thử nghiệm hoặc checklist cá nhân trước khi mở máy tính.
+
+---
+
+### 4. 📰 Tab "Tin Tức" (AGY News Terminal) — Phân Tích & Lọc Nhiễu Thị Trường
+
+Thị trường crypto tràn ngập tin đồn thất thiệt. Bộ lọc tin tức AGY Terminal giúp bạn:
+
+- **Lọc tin tức theo đồng coin**: Chọn coin bạn quan tâm để xem các sự kiện nóng liên quan.
+- **Thang đo mức độ tác động (Impact Score)**:
+  - 🔴 **Tác động MẠNH (High Impact)**: Các tin tức có thể gây bão giá (họp lãi suất Fed, quỹ lớn mua/bán, hack sàn...). Cảnh báo bạn cân nhắc đứng ngoài hoặc siết chặt dừng lỗ.
+  - 🟡 **Tác động VỪA (Medium Impact)**: Biến động trong biên độ vừa phải.
+  - 🟢 **Tác động NHẸ (Low Impact)**: Tin tức định kỳ, ít rủi ro biến động giật giá.
+- **Tóm tắt & Khuyến nghị hành động**: Nắm bắt nhanh nguyên nhân và dự phóng xu hướng chỉ trong 30 giây đọc lướt.
+
+---
+
+### 5. 🤖 Tab "AI Trader" — Hội Đồng Trợ Lý Phản Biện Đa Tác Nhân
+
+Trước khi bấm nút vào lệnh, bạn có thể tham khảo ý kiến từ Hội đồng AI gồm 4 góc nhìn chuyên gia độc lập:
+
+1. **Chuyên gia Phân Tích Kỹ Thuật (Technical Agent)**: Soi các chỉ báo RSI, MACD, cấu trúc nến, mức cản đa khung thời gian.
+2. **Chuyên gia Vĩ Mô (Macro Agent)**: Đánh giá xu hướng chu kỳ dòng tiền và sức mạnh của Bitcoin Dominance.
+3. **Chuyên gia Quản Trị Rủi Ro (Risk Agent)**: Đánh giá xem mức Stop Loss có quá xa không, tỷ lệ R:R có xứng đáng để mạo hiểm vốn không.
+4. **Chuyên gia Thẩm Định Độc Lập (Validator Agent)**: Tìm kiếm các điểm mù và giả định chủ quan mà bạn có thể đang ngộ nhận.
+5. **Phán Quyết Chung (Master Council Verdict)**: Đưa ra nhận định tổng thể, xác suất thành công (%) và lời khuyên có nên vào lệnh hay nên kiên nhẫn đứng ngoài.
+
+---
+
+### 6. 💼 Tab "Giao Dịch Mô Phỏng" (Paper Trading) — Tập Luyện Không Sợ Cháy Túi
+
+Dành cho bạn muốn thử nghiệm chiến lược giao dịch thực tế mà không cần nạp tiền thật:
+- Bạn được cấp sẵn tài khoản ảo **10,000 USDT**.
+- Mở/đóng các vị thế Long, Short theo giá thị trường.
+- Tự do thử nghiệm quản lý vốn, đòn bẩy và chiến lược cho đến khi tỷ lệ thắng ổn định rồi mới bước ra thị trường thật.
+
+---
+
+## 🔒 Tính Riêng Tư & An Toàn Dữ Liệu
+
+- **100% Lưu Trữ Cục Bộ (Local & Private)**: Toàn bộ nhật ký lệnh, các ghi chú cá nhân và hình ảnh biểu đồ của bạn đều được lưu trữ trực tiếp trên chính chiếc máy tính của bạn (tại thư mục `data/` và `uploads/`).
+- **Không gửi dữ liệu cá nhân lên mây**: Bạn hoàn toàn làm chủ tài sản thông tin của mình, không lo bị lộ danh mục đầu tư hay lịch sử lệnh ra bên ngoài.
+
+---
+
+## ❓ Câu Hỏi Thường Gặp (FAQ)
+
+<details>
+<summary><b>1. Tôi muốn đổi cổng chạy khác nếu cổng 3000 đang bận?</b></summary>
+
+Rất đơn giản, tại cửa sổ dòng lệnh bạn chỉ cần gõ:
+```bash
+PORT=3001 npm start
+```
+Sau đó mở trình duyệt tại: `http://localhost:3001`.
+</details>
+
+<details>
+<summary><b>2. Dữ liệu lệnh và ảnh chụp có bị mất khi tôi tắt máy tính không?</b></summary>
+
+Hoàn toàn không. Dữ liệu được lưu vĩnh viễn vào tệp cơ sở dữ liệu `data/dashboard.sqlite` trên máy tính của bạn. Lần sau khi bạn mở ứng dụng, toàn bộ dữ liệu sẽ hiển thị nguyên vẹn.
+</details>
+
+<details>
+<summary><b>3. Tôi có thể sao lưu (backup) nhật ký giao dịch của mình không?</b></summary>
+
+Có. Bạn chỉ cần copy thư mục `data/` và thư mục `uploads/` cất vào ổ cứng ngoài hoặc Google Drive cá nhân là đã sao lưu toàn bộ dữ liệu an toàn.
+</details>
+
+---
+
+## ⚠️ Tuyên Bố Miễn Trừ Trách Nhiệm
+
+*Ứng dụng này được phát triển với mục đích giáo dục, hỗ trợ học tập và xây dựng kỷ luật cá nhân trong đầu tư. Mọi phân tích, đánh giá kỹ thuật và nhận định từ trí tuệ nhân tạo (AI) đều chỉ mang tính chất tham khảo, không cấu thành lời khuyên đầu tư tài chính. Bạn hoàn toàn chịu trách nhiệm cho mọi quyết định giao dịch của chính mình.*
+
+---
+Chúc bạn học tập hiệu quả, kiên định kỷ luật và gặt hái nhiều thành công trên thị trường! 🚀
