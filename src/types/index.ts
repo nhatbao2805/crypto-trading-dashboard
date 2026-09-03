@@ -1,0 +1,460 @@
+// --- COMPREHENSIVE TYPESCRIPT DEFINITIONS FOR CRYPTO MASTER DASHBOARD ---
+
+export type MainTab = "theory" | "practice" | "journal" | "news" | "ai_trader" | "human_trader";
+export type TheorySubTab = "reader" | "atlas";
+export type JournalSubTab = "trades" | "notes" | "aireview";
+export type NewsSubTab = "analyze" | "chat" | "feed";
+export type AiTraderSubTab = "screener" | "workspace" | "council" | "hypo_eval" | "chat";
+export type HumanTraderSubTab = "trade_desk" | "positions" | "history";
+
+// 1. Module 1: Theory
+export interface Chapter {
+  id: number;
+  title: string;
+  sectionCount?: number;
+  content?: string;
+  summary?: string;
+}
+
+export interface GlossaryTerm {
+  term: string;
+  origin: string;
+  desc: string;
+  category?: string;
+}
+
+export interface TheoryData {
+  chapters: Chapter[];
+  glossary: GlossaryTerm[];
+}
+
+// 2. Module 2: Practice
+export interface CandleData {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  vol?: number;
+  label?: string;
+  labelColor?: string;
+}
+
+export interface ChartZone {
+  type: "support" | "resistance" | "fvg" | "order_block";
+  top: number;
+  bottom: number;
+  label?: string;
+}
+
+export interface TradeSetup {
+  entry: number;
+  sl: number;
+  tp: number;
+  startIndex?: number;
+}
+
+export interface ChartConfig {
+  width?: number;
+  height?: number;
+  candles: CandleData[];
+  zones?: ChartZone[];
+  tradeSetup?: TradeSetup;
+  title?: string;
+  timeframe?: string;
+}
+
+export interface PracticeOption {
+  id: "A" | "B" | "C" | "D";
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface PracticeScenario {
+  id: number;
+  chapterId: number;
+  level: "basic" | "intermediate" | "advanced";
+  levelLabel: string;
+  category: string;
+  categoryName: string;
+  title: string;
+  description: string;
+  chartConfig?: ChartConfig;
+  question: string;
+  options: PracticeOption[];
+  explanation: string;
+}
+
+export interface PracticeStats {
+  total: number;
+  correct: number;
+  streak: number;
+  answered: Record<number, { chosenOption: string; isCorrect: boolean; timestamp: string }>;
+  chapterStats: Record<number, { total: number; correct: number }>;
+}
+
+// 3. Module 3: Trade Journal & Notes
+export type TradeType = "LONG" | "SHORT" | "SPOT_BUY" | "SPOT_SELL";
+export type TradeStatus = "WIN" | "LOSS" | "BREAKEVEN" | "OPEN";
+
+export interface TradeEntry {
+  id?: number;
+  date: string;
+  coin: string;
+  type: TradeType;
+  entry_price: number;
+  exit_price?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  position_size?: number;
+  pnl_amount?: number;
+  pnl_percent?: number;
+  status: TradeStatus;
+  notes?: string;
+  setup_confluences?: string[] | string;
+  rules_checked?: string[] | string;
+  emotions?: string;
+  images?: string[] | string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TradeStatsSummary {
+  winRate?: number | string;
+  totalPnl?: number | string;
+  totalPnL?: number | string;
+  totalTrades?: number;
+  profitFactor?: number | string;
+  winTrades?: number;
+  lossTrades?: number;
+  breakevenTrades?: number;
+  openTrades?: number;
+}
+
+export interface NoteEntry {
+  id?: number;
+  title: string;
+  category: string;
+  content: string;
+  is_pinned?: number | boolean;
+  images?: string[] | string;
+  date: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type NoteCategory = 
+  | "ALL"
+  | "Tâm Lý & Kỷ Luật"
+  | "Phân Tích Thị Trường"
+  | "Kinh Nghiệm / Bài Học"
+  | "Kế Hoạch Trade"
+  | "Ghi Chú Chung";
+
+export type AiReviewPeriod = "TODAY" | "WEEK" | "MONTH" | "YEAR" | "ALL" | "CUSTOM";
+
+export interface TradeReviewResult {
+  periodType: string;
+  totalTrades: number;
+  disciplineScore: number;
+  winRate: number;
+  totalPnl: number;
+  profitFactor: number;
+  summary: string;
+  checklistAnalysis: {
+    missingSlCount: number;
+    badRrCount: number;
+    overtradingDays: number;
+    revengeTradeCount: number;
+  };
+  recommendations: string[];
+  detailedTradeAudits?: Array<{
+    id: number;
+    coin: string;
+    type: string;
+    pnlAmount: number;
+    issues: string[];
+    isCompliant: boolean;
+  }>;
+}
+
+export interface SavedTradeReview {
+  id: number;
+  period_type: string;
+  start_date?: string;
+  end_date?: string;
+  coin_filter?: string;
+  total_trades: number;
+  discipline_score: number;
+  analysis_data: string | TradeReviewResult;
+  created_at: string;
+}
+
+// 4. Module 4: News & AGY Terminal
+export interface BinanceTicker {
+  symbol: string;
+  price: number;
+  change24h: number;
+  high24h?: number;
+  low24h?: number;
+  volumeUsdt?: number;
+  fundingRate?: string;
+}
+
+export interface NewsArticle {
+  id?: string;
+  title: string;
+  url: string;
+  source: string;
+  publishedAt?: string;
+  category?: string;
+  summary?: string;
+  translatedTitle?: string;
+  translatedSummary?: string;
+  sentiment?: "BULLISH" | "BEARISH" | "NEUTRAL";
+  impactLevel?: "HIGH" | "MEDIUM" | "LOW";
+  agyDiagnosis?: string;
+  originalSnippet?: string;
+}
+
+export interface NewsAnalysisResult {
+  coin: string;
+  price: number;
+  change24h: number;
+  volumeUsdt: number;
+  sentimentScore: number; // 0 to 100 (50 is neutral, >50 is bullish)
+  bullishPercent: number;
+  bearishPercent: number;
+  impactLevel: "HIGH" | "MEDIUM" | "LOW";
+  impactVerdict: "BULLISH" | "BEARISH" | "NEUTRAL";
+  catalysts: string[];
+  summary: string;
+  recommendations: string[];
+  articles: NewsArticle[];
+  terminalLogs?: string;
+  time?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: "user" | "agy" | "system";
+  text: string;
+  timestamp: string;
+  coin?: string;
+}
+
+// Toast
+export interface ToastInfo {
+  id: string;
+  message: string;
+  type: "success" | "error" | "warning" | "info";
+}
+
+export interface PracticeProgress {
+  stats_data?: any;
+  updated_at?: string;
+}
+
+// 5. Module 5: Multi-Agent AI Trader Council
+export interface TechnicalView {
+  agent_id: string;
+  agent_name: string;
+  avatar: string;
+  signal: string;
+  estimatedRsi: number;
+  support_zone: string;
+  resistance_zone: string;
+  summary: string;
+  recommended_entry: string;
+  trigger_condition: string;
+}
+
+export interface MacroView {
+  agent_id: string;
+  agent_name: string;
+  avatar: string;
+  signal: string;
+  fundingRate: string;
+  volumeUsd: string;
+  summary: string;
+  fundingAnalysis: string;
+}
+
+export interface RiskView {
+  agent_id: string;
+  agent_name: string;
+  avatar: string;
+  risk_score: number;
+  risk_level: string;
+  stop_loss: string;
+  take_profit_1: string;
+  take_profit_2: string;
+  risk_reward_ratio: string;
+  recommended_max_leverage: string;
+  capital_allocation: string;
+  advice: string;
+}
+
+export interface ValidatorView {
+  agent_id: string;
+  agent_name: string;
+  avatar: string;
+  trap_warning: string;
+  critical_question: string;
+  invalidation_level: string;
+}
+
+export interface MasterVerdict {
+  agent_id: string;
+  agent_name: string;
+  avatar: string;
+  coin: string;
+  current_price: string;
+  action: "STRONG_BUY" | "BUY" | "NEUTRAL" | "SELL" | "STRONG_SELL" | "OBSERVE";
+  action_label: string;
+  probability_pct: number;
+  entry_zone: string;
+  stop_loss: string;
+  take_profit: string;
+  key_reasons: string[];
+  vital_warning: string;
+  summary_paragraph: string;
+}
+
+export interface CouncilDebateResult {
+  success: boolean;
+  coin: string;
+  timestamp: string;
+  liveMarket?: BinanceTicker | any;
+  technical_view: TechnicalView;
+  macro_view: MacroView;
+  risk_view: RiskView;
+  validator_view: ValidatorView;
+  master_verdict: MasterVerdict;
+}
+
+export interface UserPredictionEvaluation {
+  success: boolean;
+  coin: string;
+  hypothesis: string;
+  userAction: string;
+  probability_pct: number;
+  risk_score: number;
+  verdict: string;
+  verdictColor: string;
+  pros: string[];
+  cons: string[];
+  suggested_setup: {
+    entry: string;
+    stop_loss: string;
+    take_profit: string;
+    leverage: string;
+    risk_reward: string;
+  };
+  advice: string;
+}
+
+// 6. Module 6: Human Trader (Realtime Paper Trading)
+export interface PaperAccount {
+  balance: number;
+  initialCapital: number;
+  lockedMargin: number;
+  availableBalance: number;
+  updatedAt: string;
+}
+
+export interface PaperPosition {
+  id: number;
+  date: string;
+  coin: string;
+  type: "LONG" | "SHORT";
+  entry_price: number;
+  exit_price?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  leverage: number;
+  position_size: number;
+  margin: number;
+  pnl_amount?: number;
+  pnl_percent?: number;
+  status: "OPEN" | "CLOSED" | "LIQUIDATED";
+  close_reason?: string;
+  ai_verdict?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaperHistoryStats {
+  totalTrades: number;
+  winTrades: number;
+  lossTrades: number;
+  winRate: number;
+  totalPnl: number;
+}
+
+// 7. 24/7 Market Screener & NLP Strategy Types
+export interface ScreenerCandidate {
+  symbol: string;
+  coin: string;
+  price: number;
+  change24h: number;
+  volumeUsdt: number;
+  volumeUsdFormatted: string;
+  estimatedRsi: number;
+  confluenceScore: number;
+  signal: string;
+  action: "STRONG_BUY" | "BUY" | "SELL" | "OBSERVE";
+  setupType: "BREAKOUT" | "REBOUND" | "OVERBOUGHT_TRAP" | "RANGE";
+  entryZone: string;
+  stopLoss: string;
+  takeProfit: string;
+  rrRatio: string;
+  trapWarning: string;
+}
+
+export interface MarketScreenerResult {
+  success: boolean;
+  timestamp: string;
+  totalScanned: number;
+  bullishBreadth: number;
+  topBreakouts: ScreenerCandidate[];
+  topOversold: ScreenerCandidate[];
+  topOverbought: ScreenerCandidate[];
+  rankedSignals: ScreenerCandidate[];
+}
+
+export interface NlpStrategyConfig {
+  strategy_name: string;
+  intent_summary: string;
+  filters: {
+    min_volume_usd: number;
+    min_price_change: number;
+    target_rsi_range: string;
+    market_type: string;
+  };
+  execution_steps: string[];
+  estimated_matches_count: number;
+}
+
+export interface NlpStrategyResponse {
+  success: boolean;
+  original_prompt: string;
+  strategy_config: NlpStrategyConfig;
+  active_matching_candidates: ScreenerCandidate[];
+  created_at: string;
+}
+
+export interface TelegramStatus {
+  success: boolean;
+  configured: boolean;
+  chatId: string;
+  lastAlerts?: Array<{
+    symbol: string;
+    coin: string;
+    score: number;
+    action: string;
+    time: string;
+  }>;
+}
+
+

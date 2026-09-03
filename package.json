@@ -4,8 +4,16 @@
   "description": "Professional Crypto Trading Dashboard: Theory, Daily Trading Journal with Image Uploads, and AGY Terminal News Impact Filter",
   "main": "server.js",
   "scripts": {
+    "dev": "node server.js",
+    "dev:vite": "vite",
+    "dev:watch": "node --watch server.js",
+    "build": "./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vite build",
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "agent:live": "node live_agent_terminal.js",
+    "test": "node test_suite.js",
+    "test:modular": "node test_modular_architecture.js",
+    "test:integration": "node test_api_integration.js",
+    "test:all": "node test_modular_architecture.js && node test_ai_trader_e2e.js && node test_suite.js && node test_api_integration.js"
   },
   "keywords": [
     "crypto",
@@ -16,5 +24,27 @@
     "news-filter"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
+    "chart.js": "^4.5.1",
+    "lucide-react": "^1.39.0",
+    "marked": "^18.0.11",
+    "react": "^19.2.8",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^19.2.8"
+  }
 }

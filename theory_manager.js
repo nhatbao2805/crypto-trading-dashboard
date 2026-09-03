@@ -1,15 +1,28 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+let cachedTheoryData = null;
+
 function getHandbookPath() {
-  const p1 = path.join(__dirname, 'Cam_Nang_Crypto_Toan_Tap_Cho_Nguoi_Moi.md');
-  if (fs.existsSync(p1)) return p1;
-  const p2 = path.join(__dirname, 'README.md');
-  if (fs.existsSync(p2)) return p2;
+  const candidates = [
+    path.join(__dirname, 'Cam_Nang_Crypto_Toan_Tap_Cho_Nguoi_Moi.md'),
+    path.join(process.cwd(), 'Cam_Nang_Crypto_Toan_Tap_Cho_Nguoi_Moi.md'),
+    path.join(__dirname, '..', 'Cam_Nang_Crypto_Toan_Tap_Cho_Nguoi_Moi.md'),
+    path.join(__dirname, 'README.md'),
+    path.join(process.cwd(), 'README.md')
+  ];
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
   return null;
 }
 
-function loadTheoryData() {
+function loadTheoryData(forceReload = false) {
+  if (cachedTheoryData && !forceReload) {
+    return cachedTheoryData;
+  }
+
   const mdPath = getHandbookPath();
   if (!mdPath) {
     return { error: 'Handbook markdown file not found' };
@@ -68,7 +81,7 @@ function loadTheoryData() {
     }
   }
 
-  return {
+  cachedTheoryData = {
     totalChapters: chapters.length,
     chapters: chapters.map(c => ({
       id: c.id,
@@ -80,6 +93,8 @@ function loadTheoryData() {
     rawChapters: chapters,
     glossary
   };
+
+  return cachedTheoryData;
 }
 
 module.exports = {
