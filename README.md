@@ -103,8 +103,8 @@ Trước khi bắt đầu cài đặt, máy tính của bạn cần có:
 ### Bước 1: Tải mã nguồn về máy (Clone Repository)
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo-name>.git
-cd <your-repo-name>
+git clone https://github.com/nhatbao2805/crypto-trading-dashboard.git
+cd crypto-trading-dashboard
 ```
 *(Nếu bạn đã có sẵn thư mục mã nguồn trên máy, chỉ cần mở terminal tại thư mục đó).*
 
