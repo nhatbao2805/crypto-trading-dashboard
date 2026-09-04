@@ -50,17 +50,21 @@ npm install
 
 ---
 
-## 🔑 HƯỚNG DẪN LẤY TẤT CẢ CÁC LOẠI KEY TỪ A -> Z (CỰC KỲ CHI TIẾT)
+## 🔑 HƯỚNG DẪN LẤY CÁC LOẠI KEY TỪ A -> Z (RÕ RÀNG & CỤ THỂ)
 
-Ứng dụng của bạn tích hợp sẵn dữ liệu giá **Binance** và tin tức **CryptoCompare** chạy **HOÀN TOÀN TỰ ĐỘNG KHÔNG CẦN KEY**.  
-Tuy nhiên, để kích hoạt **Hội đồng 4 AI Cố vấn (AI Trader)** và **Cảnh báo bắn tin nhắn về điện thoại qua Telegram**, bạn chỉ cần chuẩn bị 2 loại key dưới đây (Đều **MIỄN PHÍ 100%**):
+Trước khi bắt đầu, bạn hãy yên tâm:
+- 🟢 **Dữ liệu giá Binance & Tin tức Crypto**: Đã tích hợp sẵn, **TỰ ĐỘNG 100%, KHÔNG CẦN KEY**.
+- 🌟 **Để AI hoạt động thông minh nhất**: Bạn **CHỈ CẦN DUY NHẤT 1 KEY MIỄN PHÍ**: **Google Gemini API Key** (ở Mục 1 dưới đây).
+- 📲 **Telegram Bot (Mục 2)**: **HOÀN TOÀN TÙY CHỌN (OPTIONAL)** — Chỉ cài nếu bạn muốn nhận tin nhắn về điện thoại. Nếu không cài, web vẫn chạy 100% bình thường.
+- 🧠 **DeepSeek / OpenAI / Ollama (Mục 3, 4, 5)**: **HOÀN TOÀN TÙY CHỌN (OPTIONAL)** — Dành riêng cho ai muốn trải nghiệm thêm các dòng AI khác, người mới không cần quan tâm.
 
 ---
 
 ### 1. 🌟 Google Gemini API Key (KHUYÊN DÙNG — 100% MIỄN PHÍ — KHÔNG CẦN THẺ VISA)
 
 > **Mục đích**: Cung cấp "bộ não" cho Hội đồng 4 AI Tác tử (Kỹ thuật SMC, Dòng tiền vĩ mô, Quản trị rủi ro, Phản biện bẫy giá) và Trợ lý AI Coaching kỷ luật giao dịch.  
-> **Chi phí**: **Miễn phí 100%** từ Google AI Studio (cho phép 15 yêu cầu/phút, 1.500 yêu cầu/ngày — đủ dùng thoải mái cho cá nhân).
+> **Chi phí**: **Miễn phí 100%** từ Google AI Studio (cho phép 15 yêu cầu/phút, 1.500 yêu cầu/ngày — đủ dùng thoải mái cho cá nhân).  
+> ⚠️ **Đây là KEY DUY NHẤT bạn nên lấy để trải nghiệm trọn vẹn trí tuệ nhân tạo của ứng dụng.**
 
 #### Các bước lấy Key:
 1. Mở trình duyệt web và truy cập vào trang: 👉 **[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**
@@ -74,10 +78,13 @@ Tuy nhiên, để kích hoạt **Hội đồng 4 AI Cố vấn (AI Trader)** và
 
 ---
 
-### 2. 📲 Telegram Bot Token & Chat ID (MIỄN PHÍ 100% — NHẬN CẢNH BÁO 24/7 VỀ ĐIỆN THOẠI)
+### 2. 📲 [TÙY CHỌN / OPTIONAL] Telegram Bot Token & Chat ID — Nhận Cảnh Báo Về Điện Thoại 24/7
 
-> **Mục đích**: Khi phát hiện bẫy thanh khoản cá mập, quét râu SFP, hoặc cảnh báo giá chạm Stop Loss / Take Profit, hệ thống sẽ tự động gửi tin nhắn báo động trực tiếp vào ứng dụng Telegram trên điện thoại của bạn ngay cả khi bạn không mở máy tính.
+> 💡 **LƯU Ý QUAN TRỌNG: MỤC NÀY HOÀN TOÀN LÀ TÙY CHỌN (OPTIONAL - KHÔNG BẮT BUỘC)!**  
+> - Nếu bạn **chỉ muốn dùng ứng dụng trên máy tính**, bạn **CÓ THỂ BỎ QUA HOÀN TOÀN MỤC NÀY**. Các tín hiệu radar, bẫy giá và thông báo vẫn hiển thị đầy đủ ngay trên màn hình web.  
+> - Bạn chỉ cần làm theo mục này khi muốn hệ thống tự động bắn tin nhắn báo động về app Telegram trên điện thoại của mình khi bạn đi ra ngoài.
 
+#### Nếu bạn muốn cài đặt cảnh báo về điện thoại:
 #### Phần A: Lấy `TELEGRAM_BOT_TOKEN` (Tạo bot riêng của bạn):
 1. Mở ứng dụng **Telegram** trên điện thoại hoặc máy tính.
 2. Tại thanh tìm kiếm (Search), gõ tìm kiếm: `@BotFather`  
@@ -97,15 +104,16 @@ Tuy nhiên, để kích hoạt **Hội đồng 4 AI Cố vấn (AI Trader)** và
 2. Nhấp nút **Start**. Bot này sẽ lập tức trả về thông tin tài khoản Telegram của bạn, trong đó có dòng:  
    `Id: 123456789` (một chuỗi số gồm 9 đến 10 chữ số).  
    👉 **Hãy copy dãy số này**, đây chính là **`TELEGRAM_CHAT_ID`**.
-3. ⚠️ **BƯỚC QUAN TRỌNG NHẤT KHÔNG ĐƯỢC QUÊN**:  
+3. ⚠️ **BƯỚC QUAN TRỌNG NHẤT**:  
    Hãy mở lại con bot bạn vừa tạo ở **Phần A** (gõ tên bot của bạn vào ô tìm kiếm, ví dụ `@baotrading_signal_bot`), nhấp **Start** hoặc gửi cho nó một tin nhắn bất kỳ (ví dụ: `Hi`).  
-   *(Nếu bạn không nhắn tin cho nó trước, Telegram sẽ kích hoạt chế độ chống spam và bot sẽ không thể gửi tin nhắn cho bạn).*
+   *(Nếu bạn không nhắn tin cho nó trước, Telegram sẽ chặn bot không cho gửi tin nhắn đến tài khoản của bạn).*
 
 ---
 
-### 3. 🧠 DeepSeek API Key (TÙY CHỌN — Phản Biện Bẫy Giá Cực Sâu)
+### 3. 🧠 [TÙY CHỌN / OPTIONAL] DeepSeek API Key — Mô Hình Lý Luận Bổ Sung
 
-> **Mục đích**: Tích hợp mô hình lý luận **DeepSeek R1** (`deepseek-reasoner`) để "bóc mẽ" các bẫy giá SMC phức tạp với chi phí cực rẻ.
+> 💡 **LƯU Ý: HOÀN TOÀN TÙY CHỌN (OPTIONAL - KHÔNG BẮT BUỘC).**  
+> Mặc định hệ thống đã chạy Google Gemini ở Mục 1 cực kỳ mạnh mẽ. Mục này chỉ dành cho ai muốn trải nghiệm thêm mô hình lý luận DeepSeek R1 (`deepseek-reasoner`).
 
 1. Truy cập vào trang: 👉 **[https://platform.deepseek.com/](https://platform.deepseek.com/)**
 2. Đăng ký hoặc đăng nhập tài khoản.
@@ -115,7 +123,10 @@ Tuy nhiên, để kích hoạt **Hội đồng 4 AI Cố vấn (AI Trader)** và
 
 ---
 
-### 4. 🤖 OpenAI API Key (TÙY CHỌN — Dành Cho Người Thích GPT-4o)
+### 4. 🤖 [TÙY CHỌN / OPTIONAL] OpenAI API Key — Dành Cho Ai Có Sẵn Tài Khoản GPT-4o
+
+> 💡 **LƯU Ý: HOÀN TOÀN TÙY CHỌN (OPTIONAL - KHÔNG BẮT BUỘC).**  
+> Chỉ sử dụng nếu bạn đã có sẵn tài khoản OpenAI trả phí và muốn sử dụng các model GPT-4o.
 
 1. Truy cập vào: 👉 **[https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)**
 2. Đăng nhập tài khoản OpenAI.
@@ -123,9 +134,10 @@ Tuy nhiên, để kích hoạt **Hội đồng 4 AI Cố vấn (AI Trader)** và
 
 ---
 
-### 5. 💻 Ollama Local (TÙY CHỌN — Chạy Offline 100% Không Tốn Tiền, Không Cần Key)
+### 5. 💻 [TÙY CHỌN / OPTIONAL] Ollama Local — Chạy Offline 100% Không Cần Key
 
-> Nếu bạn muốn phân tích hoàn toàn nội bộ trên máy tính của mình mà không gửi dữ liệu ra internet:
+> 💡 **LƯU Ý: HOÀN TOÀN TÙY CHỌN (OPTIONAL - DÀNH CHO DÂN CHUYÊN NGHIỆP).**  
+> Nếu bạn có máy tính cấu hình mạnh (Mac Apple Silicon M-series hoặc máy có GPU rời) và muốn chạy AI nội bộ hoàn toàn trên máy:
 1. Tải và cài đặt Ollama từ: 👉 [https://ollama.com](https://ollama.com)
 2. Mở Terminal / CMD gõ:  
    ```bash
@@ -179,7 +191,7 @@ PORT=3000
 # Chọn nhà cung cấp AI chính: gemini (khuyên dùng) hoặc deepseek
 PRIMARY_LLM_PROVIDER=gemini
 
-# [BẮT BUỘC ĐỂ DÙNG AI] Dán key Google Gemini bạn đã lấy ở Mục 1 vào đây:
+# [KHUYÊN DÙNG ĐỂ AI HOẠT ĐỘNG] Dán key Google Gemini (miễn phí) vào đây:
 GEMINI_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Các model Gemini tối ưu cho từng tác tử (Để mặc định là chuẩn nhất)
@@ -187,19 +199,20 @@ GEMINI_MODEL_PRO=gemini-2.5-pro
 GEMINI_MODEL=gemini-2.5-flash
 GEMINI_MODEL_LITE=gemini-2.0-flash-lite
 
-# [TÙY CHỌN] Điền nếu bạn có key DeepSeek
+# [TÙY CHỌN / OPTIONAL - KHÔNG BẮT BUỘC] Chỉ điền nếu bạn muốn dùng thêm DeepSeek
 DEEPSEEK_API_KEY=
 DEEPSEEK_MODEL_REASONER=deepseek-reasoner
 DEEPSEEK_MODEL=deepseek-chat
 
-# [TÙY CHỌN] Chạy AI Offline bằng Ollama (Không cần chỉnh sửa nếu không dùng)
+# [TÙY CHỌN / OPTIONAL - KHÔNG BẮT BUỘC] Chạy AI Offline bằng Ollama (không cần chỉnh sửa nếu không dùng)
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 OLLAMA_MODEL_DEEP=deepseek-r1:8b
 OLLAMA_MODEL=qwen2.5:7b
 
-# 3. CẢNH BÁO TÍN HIỆU TELEGRAM 24/7 (Điền thông tin ở Mục 2 để nhận tin nhắn)
-TELEGRAM_BOT_TOKEN=7891234567:AAFlkjasd987123jhkjh-abcdef...
-TELEGRAM_CHAT_ID=123456789
+# 3. [TÙY CHỌN / OPTIONAL - KHÔNG BẮT BUỘC] CẢNH BÁO TÍN HIỆU TELEGRAM 24/7 VỀ ĐIỆN THOẠI
+# (Nếu chỉ dùng trên máy tính thì cứ để trống 2 dòng này)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
 TELEGRAM_ALERT_MIN_SCORE=82
 ```
 
