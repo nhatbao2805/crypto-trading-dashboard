@@ -20,7 +20,9 @@ import {
   TelegramStatus,
   VolatilityEvent,
   DailyBriefingData,
-  DailyReviewData
+  DailyReviewData,
+  DailyMarketBrief,
+  NewsArticle
 } from "../types";
 
 const API_BASE = "";
@@ -215,6 +217,19 @@ export const NewsApi = {
       method: "POST",
       body: JSON.stringify({ coin }),
     }),
+
+  getDailyBrief: () =>
+    request<{ success: boolean; brief: DailyMarketBrief }>("/api/news/daily-brief"),
+
+  generateDailyBrief: () =>
+    request<{ success: boolean; brief: DailyMarketBrief }>("/api/news/daily-brief/generate", {
+      method: "POST",
+    }),
+
+  getNewsArticles: (coin = "BTC", source = "all") =>
+    request<{ success?: boolean; articles: NewsArticle[] }>(
+      `/api/news?coin=${encodeURIComponent(coin)}&source=${encodeURIComponent(source)}`
+    ),
 };
 
 // 5. Multi-Agent AI Trader Council APIs

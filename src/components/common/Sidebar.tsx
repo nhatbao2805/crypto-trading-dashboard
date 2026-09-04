@@ -67,9 +67,9 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "news",
-    name: "4. Lọc Tin",
-    shortName: "Lọc Tin",
-    badge: "AGY Impact",
+    name: "4. Bản Tin & Chiến Lược AI",
+    shortName: "Bản Tin Ngày",
+    badge: "Chuyên Gia Vĩ Mô",
     icon: Zap,
     activeColor: "bg-amber-600 text-white shadow-lg shadow-amber-600/30 border-amber-500/40"
   },

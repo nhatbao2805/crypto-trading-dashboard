@@ -126,15 +126,35 @@ class JournalController {
 
   async generateAiReview(req, res, body) {
     try {
-      const { period = 'WEEKLY', periodType = 'WEEKLY', coinFilter = 'ALL', save = false } = body || {};
-      const review = await journalAuditService.generateAiCoachReview(periodType || period, coinFilter);
-      let savedRecord = null;
-      if (save && review) {
+      const {
+        period = 'WEEK',
+        periodType = 'WEEK',
+        coinFilter = 'ALL',
+        startDate = null,
+        endDate = null,
+        save = false,
+        livePrices = {}
+      } = body || {};
+
+      const activePeriod = periodType || period || 'WEEK';
+      const review = await journalAuditService.generateAiCoachReview({
+        periodType: activePeriod,
+        coinFilter,
+        startDate,
+        endDate,
+        save,
+        livePrices
+      });
+
+      let savedRecord = review?.savedRecord || null;
+      if (save && !savedRecord && review) {
         savedRecord = journalRepository.saveTradeReview({
-          period_type: review.period_type || periodType || period,
+          period_type: review.periodType || review.period_type || activePeriod,
+          start_date: startDate || review.start_date || null,
+          end_date: endDate || review.end_date || null,
           coin_filter: coinFilter,
-          total_trades: review.total_trades || 0,
-          discipline_score: review.discipline_score || 0,
+          total_trades: review.totalTrades ?? review.total_trades ?? 0,
+          discipline_score: review.disciplineScore ?? review.discipline_score ?? 0,
           analysis_data: review
         });
       }

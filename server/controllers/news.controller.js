@@ -2,6 +2,7 @@ const binanceService = require('../services/binance.service');
 const newsService = require('../services/news.service');
 const debateRepository = require('../models/DebateRepository');
 const masterCouncil = require('../agents/MasterCouncil');
+const dailyNewsAgentService = require('../services/daily-news-agent.service');
 
 class NewsController {
   async getMarketPrice(req, res, query) {
@@ -23,9 +24,20 @@ class NewsController {
   }
 
   async getNewsArticles(req, res, query) {
-    const coin = query.coin || 'BTC';
-    const articles = await newsService.getLatestNews(coin);
+    const coin = (query && query.coin) || 'BTC';
+    const source = (query && query.source) || 'all';
+    const articles = await newsService.getLatestNews(coin, source);
     return res.json({ success: true, articles });
+  }
+
+  async getMacroIntelligence(req, res, query) {
+    const coin = (query && query.coin) || 'BTC';
+    try {
+      const macro = await newsService.getMacroIntelligence(coin);
+      return res.json({ success: true, macro });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 
   async analyzeNewsImpact(req, res, body) {
@@ -61,6 +73,24 @@ class NewsController {
       });
     } catch (err) {
       return res.status(500).json({ error: err.message });
+    }
+  }
+
+  async getDailyBrief(req, res) {
+    try {
+      const brief = await dailyNewsAgentService.getLatestBrief();
+      return res.json({ success: true, brief });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  async generateDailyBrief(req, res) {
+    try {
+      const brief = await dailyNewsAgentService.generateDailyBrief(true);
+      return res.json({ success: true, brief });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
     }
   }
 }

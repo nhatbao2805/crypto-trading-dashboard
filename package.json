@@ -8,7 +8,7 @@
     "dev:node": "node --no-warnings server.js",
     "dev:vite": "vite",
     "dev:watch": "node --no-warnings --watch server.js",
-    "build": "./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vite build",
+    "build": "tsc --noEmit && vite build",
     "start": "node --no-warnings server.js",
     "agent:live": "node live_agent_terminal.js",
     "logs:screener": "tail -n 25 -f logs/screener.log",

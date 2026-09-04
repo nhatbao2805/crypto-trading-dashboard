@@ -103,6 +103,7 @@ export const App: React.FC = () => {
         <Header
           activeTab={activeTab}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          onNavigateTab={(tab) => setActiveTab(tab)}
         />
 
         {/* Main View Area */}
