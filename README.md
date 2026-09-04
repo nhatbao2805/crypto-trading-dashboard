@@ -1,7 +1,7 @@
 # 🪙 Sổ Tay & Ứng Dụng Hỗ Trợ Giao Dịch Tiền Điện Tử (Crypto Trading Dashboard)
 
 > **Hệ sinh thái hỗ trợ học tập, rèn luyện kỷ luật và đồng hành cùng Trader trong từng quyết định đầu tư.**  
-> Tích hợp toàn diện: 📘 Giáo trình thực chiến 12 chương • 🕯️ Thư viện mô hình nến & bẫy giá chuẩn TradingView • 📝 Luyện tập nhận định biểu đồ • 📓 Nhật ký giao dịch kèm ảnh chart & kiểm toán kỷ luật • 📰 Bộ lọc tin tức tác động thị trường • 🤖 Hội đồng cố vấn AI đa tác nhân phản biện bẫy giá • 💼 Giao dịch mô phỏng (Paper Trading) $10,000 vốn ảo • 📲 Radar cảnh báo tín hiệu qua Telegram 24/7.
+> Tích hợp toàn diện: 📘 Giáo trình thực chiến 12 chương • 🕯️ Thư viện mô hình nến & bẫy giá chuẩn TradingView • 📝 Luyện tập nhận định biểu đồ • 📓 Nhật ký giao dịch kèm ảnh chart & kiểm toán kỷ luật • 📰 Bộ lọc tin tức tác động thị trường • 🤖 Hội đồng cố vấn AI đa tác nhân phản biện bẫy giá • 💼 Giao dịch mô phỏng (Paper Trading) $10,000 vốn ảo.
 
 ---
 
@@ -13,149 +13,31 @@
 
 ---
 
-## 🚀 HƯỚNG DẪN CÀI ĐẶT NHANH TỪ A -> Z CHO NGƯỜI MỚI
+## ⚡ HƯỚNG DẪN CÀI ĐẶT & KHỞI CHẠY NHANH (QUICK START)
 
-Bạn không cần phải là dân IT chuyên nghiệp, chỉ cần làm đúng theo các bước đơn giản dưới đây là có thể chạy ứng dụng mượt mà ngay trên máy tính của mình (Windows hoặc macOS).
+Dành cho bạn bè hoặc người mới bắt đầu — chỉ cần 3 bước cực kỳ đơn giản để đưa ứng dụng lên màn hình:
 
-### Bước 1: Cài đặt các công cụ nền tảng (Chỉ làm 1 lần duy nhất)
-
+### Bước 1: Chuẩn bị công cụ & Tải mã nguồn về máy
 1. **Cài đặt Node.js** (Bắt buộc):
-   - Truy cập trang chủ chính thức: 👉 [https://nodejs.org/](https://nodejs.org/)
-   - Tải bản **LTS (Long Term Support)** (Khuyến nghị phiên bản 20.x hoặc 22.x).
-   - Mở tệp vừa tải về và bấm `Next` liên tục để cài đặt như phần mềm thông thường.
-2. **Cài đặt Git** (Nếu máy chưa có):
-   - Windows: Tải tại [https://git-scm.com/download/win](https://git-scm.com/download/win) và cài đặt.
-   - Mac: Đã có sẵn, hoặc gõ `xcode-select --install` trong Terminal.
-
----
-
-### Bước 2: Tải mã nguồn dự án về máy tính
-
-Mở cửa sổ dòng lệnh:
-- Trên **Windows**: Bấm phím `Windows + R`, gõ `cmd` rồi bấm `Enter` (hoặc mở **PowerShell** / **Git Bash**).
-- Trên **macOS**: Bấm `Cmd + Space`, gõ `Terminal` rồi bấm `Enter`.
-
-Dán lần lượt các lệnh sau vào cửa sổ dòng lệnh:
-
-```bash
-# 1. Tải toàn bộ mã nguồn về máy tính của bạn
-git clone https://github.com/nhatbao2805/crypto-trading-dashboard.git
-
-# 2. Đi vào thư mục của ứng dụng
-cd crypto-trading-dashboard
-
-# 3. Cài đặt các thư viện cần thiết (chờ khoảng 1-2 phút)
-npm install
-```
-
----
-
-## 🔑 HƯỚNG DẪN LẤY CÁC LOẠI KEY TỪ A -> Z (RÕ RÀNG & CỤ THỂ)
-
-Trước khi bắt đầu, bạn hãy yên tâm:
-- 🟢 **Dữ liệu giá Binance & Tin tức Crypto**: Đã tích hợp sẵn, **TỰ ĐỘNG 100%, KHÔNG CẦN KEY**.
-- 🌟 **Để AI hoạt động thông minh nhất**: Bạn **CHỈ CẦN DUY NHẤT 1 KEY MIỄN PHÍ**: **Google Gemini API Key** (ở Mục 1 dưới đây).
-- 📲 **Telegram Bot (Mục 2)**: **HOÀN TOÀN TÙY CHỌN (OPTIONAL)** — Chỉ cài nếu bạn muốn nhận tin nhắn về điện thoại. Nếu không cài, web vẫn chạy 100% bình thường.
-- 🧠 **DeepSeek / OpenAI / Ollama (Mục 3, 4, 5)**: **HOÀN TOÀN TÙY CHỌN (OPTIONAL)** — Dành riêng cho ai muốn trải nghiệm thêm các dòng AI khác, người mới không cần quan tâm.
-
----
-
-### 1. 🌟 Google Gemini API Key (KHUYÊN DÙNG — 100% MIỄN PHÍ — KHÔNG CẦN THẺ VISA)
-
-> **Mục đích**: Cung cấp "bộ não" cho Hội đồng 4 AI Tác tử (Kỹ thuật SMC, Dòng tiền vĩ mô, Quản trị rủi ro, Phản biện bẫy giá) và Trợ lý AI Coaching kỷ luật giao dịch.  
-> **Chi phí**: **Miễn phí 100%** từ Google AI Studio (cho phép 15 yêu cầu/phút, 1.500 yêu cầu/ngày — đủ dùng thoải mái cho cá nhân).  
-> ⚠️ **Đây là KEY DUY NHẤT bạn nên lấy để trải nghiệm trọn vẹn trí tuệ nhân tạo của ứng dụng.**
-
-#### Các bước lấy Key:
-1. Mở trình duyệt web và truy cập vào trang: 👉 **[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**
-2. Đăng nhập bằng tài khoản **Gmail** thông thường của bạn.
-3. Nhấp vào nút xanh biển nổi bật: **"Create API key"** (Tạo khóa API).
-4. Trong bảng hiện lên:
-   - Chọn mục **"Create API key in new project"** (Tạo khóa trong dự án mới), hoặc chọn một dự án Google Cloud có sẵn nếu bạn đã có.
-5. Sau vài giây, hệ thống sẽ hiện ra một chuỗi ký tự dài bắt đầu bằng chữ `AIzaSy...`.
-6. Nhấp vào nút **Copy** (Sao chép) bên cạnh chuỗi ký tự đó và cất tạm vào Notepad.  
-   *(Lưu ý: Không chia sẻ mã này cho người khác để bảo mật).*
-
----
-
-### 2. 📲 [TÙY CHỌN / OPTIONAL] Telegram Bot Token & Chat ID — Nhận Cảnh Báo Về Điện Thoại 24/7
-
-> 💡 **LƯU Ý QUAN TRỌNG: MỤC NÀY HOÀN TOÀN LÀ TÙY CHỌN (OPTIONAL - KHÔNG BẮT BUỘC)!**  
-> - Nếu bạn **chỉ muốn dùng ứng dụng trên máy tính**, bạn **CÓ THỂ BỎ QUA HOÀN TOÀN MỤC NÀY**. Các tín hiệu radar, bẫy giá và thông báo vẫn hiển thị đầy đủ ngay trên màn hình web.  
-> - Bạn chỉ cần làm theo mục này khi muốn hệ thống tự động bắn tin nhắn báo động về app Telegram trên điện thoại của mình khi bạn đi ra ngoài.
-
-#### Nếu bạn muốn cài đặt cảnh báo về điện thoại:
-#### Phần A: Lấy `TELEGRAM_BOT_TOKEN` (Tạo bot riêng của bạn):
-1. Mở ứng dụng **Telegram** trên điện thoại hoặc máy tính.
-2. Tại thanh tìm kiếm (Search), gõ tìm kiếm: `@BotFather`  
-   *(Lưu ý: Chọn tài khoản chính chủ của Telegram có dấu tích xanh xác thực).*
-3. Nhấp nút **Start** (hoặc gửi tin nhắn `/start`).
-4. Gửi tiếp dòng lệnh: `/newbot`
-5. BotFather sẽ hỏi bạn: *"Alright, a new bot. How are we going to call it? Please choose a name for your bot."*  
-   👉 Bạn nhập một tên hiển thị tùy thích cho bot (ví dụ: `My Crypto Radar`).
-6. BotFather tiếp tục hỏi: *"Good. Now let's choose a username for your bot..."*  
-   👉 Bạn nhập tên định danh viết liền không dấu và **bắt buộc phải kết thúc bằng chữ `_bot`** (ví dụ: `baotrading_signal_bot` hoặc `nhatbao_radar_bot`).
-7. BotFather sẽ gửi tin nhắn chúc mừng kèm đoạn mã **HTTP API Token** có dạng:  
-   `7891234567:AAFlkjasd987123jhkjh-abcdef...`  
-   👉 **Hãy copy toàn bộ chuỗi mã này**, đây chính là **`TELEGRAM_BOT_TOKEN`**.
-
-#### Phần B: Lấy `TELEGRAM_CHAT_ID` (Địa chỉ hòm thư nhận tin nhắn của bạn):
-1. Tại ô tìm kiếm Telegram, gõ tìm kiếm: `@userinfobot` (hoặc `@RawDataBot`).
-2. Nhấp nút **Start**. Bot này sẽ lập tức trả về thông tin tài khoản Telegram của bạn, trong đó có dòng:  
-   `Id: 123456789` (một chuỗi số gồm 9 đến 10 chữ số).  
-   👉 **Hãy copy dãy số này**, đây chính là **`TELEGRAM_CHAT_ID`**.
-3. ⚠️ **BƯỚC QUAN TRỌNG NHẤT**:  
-   Hãy mở lại con bot bạn vừa tạo ở **Phần A** (gõ tên bot của bạn vào ô tìm kiếm, ví dụ `@baotrading_signal_bot`), nhấp **Start** hoặc gửi cho nó một tin nhắn bất kỳ (ví dụ: `Hi`).  
-   *(Nếu bạn không nhắn tin cho nó trước, Telegram sẽ chặn bot không cho gửi tin nhắn đến tài khoản của bạn).*
-
----
-
-### 3. 🧠 [TÙY CHỌN / OPTIONAL] DeepSeek API Key — Mô Hình Lý Luận Bổ Sung
-
-> 💡 **LƯU Ý: HOÀN TOÀN TÙY CHỌN (OPTIONAL - KHÔNG BẮT BUỘC).**  
-> Mặc định hệ thống đã chạy Google Gemini ở Mục 1 cực kỳ mạnh mẽ. Mục này chỉ dành cho ai muốn trải nghiệm thêm mô hình lý luận DeepSeek R1 (`deepseek-reasoner`).
-
-1. Truy cập vào trang: 👉 **[https://platform.deepseek.com/](https://platform.deepseek.com/)**
-2. Đăng ký hoặc đăng nhập tài khoản.
-3. Chọn mục **"API Keys"** ở thanh điều hướng bên trái.
-4. Bấm nút **"Create API Key"**, đặt tên gợi nhớ (ví dụ: `CryptoDashboard`) rồi bấm Tạo.
-5. Sao chép chuỗi mã có dạng `sk-xxxxxxxxxxxxxxxxxxxxxxxx`.
-
----
-
-### 4. 🤖 [TÙY CHỌN / OPTIONAL] OpenAI API Key — Dành Cho Ai Có Sẵn Tài Khoản GPT-4o
-
-> 💡 **LƯU Ý: HOÀN TOÀN TÙY CHỌN (OPTIONAL - KHÔNG BẮT BUỘC).**  
-> Chỉ sử dụng nếu bạn đã có sẵn tài khoản OpenAI trả phí và muốn sử dụng các model GPT-4o.
-
-1. Truy cập vào: 👉 **[https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)**
-2. Đăng nhập tài khoản OpenAI.
-3. Bấm **"Create new secret key"** và copy chuỗi key bắt đầu bằng `sk-proj-...`.
-
----
-
-### 5. 💻 [TÙY CHỌN / OPTIONAL] Ollama Local — Chạy Offline 100% Không Cần Key
-
-> 💡 **LƯU Ý: HOÀN TOÀN TÙY CHỌN (OPTIONAL - DÀNH CHO DÂN CHUYÊN NGHIỆP).**  
-> Nếu bạn có máy tính cấu hình mạnh (Mac Apple Silicon M-series hoặc máy có GPU rời) và muốn chạy AI nội bộ hoàn toàn trên máy:
-1. Tải và cài đặt Ollama từ: 👉 [https://ollama.com](https://ollama.com)
-2. Mở Terminal / CMD gõ:  
+   - Truy cập trang chủ chính thức: 👉 **[https://nodejs.org/](https://nodejs.org/)**
+   - Tải bản **LTS (Long Term Support)** (Khuyến nghị bản 20.x hoặc 22.x) và bấm cài đặt như ứng dụng thông thường.
+2. **Cài đặt Git** (Nếu máy chưa có): Tải tại [https://git-scm.com/](https://git-scm.com/).
+3. Mở cửa sổ dòng lệnh (**Terminal** trên macOS hoặc **CMD / PowerShell** trên Windows) và dán lần lượt:
    ```bash
-   ollama run deepseek-r1:8b
-   # hoặc
-   ollama run qwen2.5:7b
+   # 1. Tải toàn bộ mã nguồn về máy tính
+   git clone https://github.com/nhatbao2805/crypto-trading-dashboard.git
+
+   # 2. Đi vào thư mục ứng dụng
+   cd crypto-trading-dashboard
+
+   # 3. Cài đặt các thư viện phụ thuộc (chờ khoảng 1 phút)
+   npm install
    ```
-3. Ứng dụng sẽ tự động kết nối qua địa chỉ `http://127.0.0.1:11434`.
 
 ---
 
-## ⚙️ HƯỚNG DẪN TẠO VÀ ĐIỀN FILE CẤU HÌNH `.env`
-
-Sau khi đã có các key ở trên, bạn chỉ cần dán vào file cấu hình theo 3 bước:
-
-### Bước 1: Tạo file `.env` từ file mẫu `.env.example`
-
-Tại cửa sổ Terminal / CMD đang mở ở thư mục `crypto-trading-dashboard`, gõ lệnh:
+### Bước 2: Tạo file cấu hình môi trường `.env`
+Tại cửa sổ Terminal / CMD đang ở thư mục `crypto-trading-dashboard`, gõ lệnh tạo file cấu hình:
 
 - Trên **macOS / Linux**:
   ```bash
@@ -170,14 +52,98 @@ Tại cửa sổ Terminal / CMD đang mở ở thư mục `crypto-trading-dashbo
   Copy-Item .env.example .env
   ```
 
-*(Hoặc bạn có thể dùng chuột copy file `.env.example`, dán ra cùng thư mục và đổi tên thành `.env`).*
+Mở file `.env` vừa tạo (bằng Notepad, VS Code hoặc TextEdit) và dán khóa Google Gemini API Key vào dòng:
+```env
+GEMINI_API_KEY=AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+*(💡 Nếu bạn chưa có key, xem hướng dẫn lấy key miễn phí 100% trong 1 phút ở mục bên dưới. Kể cả khi chưa có key, ứng dụng vẫn mở và dùng được bình thường).*
 
 ---
 
-### Bước 2: Mở file `.env` và dán key của bạn vào
+## 🚀 CÁCH KHỞI CHẠY SERVER & TRUY CẬP ỨNG DỤNG
 
-Dùng bất kỳ trình soạn thảo nào (VS Code, Notepad trên Windows, hoặc TextEdit trên Mac) mở file `.env` vừa tạo lên.  
-Nội dung file sẽ trông như sau, bạn chỉ việc điền key của mình vào sau dấu `=`:
+Sau khi đã hoàn tất Bước 1 và Bước 2, bạn thực hiện 2 lệnh sau trên cửa sổ Terminal / CMD:
+
+```bash
+# 1. Biên dịch giao diện ứng dụng (chỉ mất vài giây)
+npm run build
+
+# 2. Khởi chạy máy chủ (Server)
+npm start
+```
+
+### 🌐 Mở Ứng Dụng Trên Trình Duyệt:
+Khi màn hình Terminal xuất hiện thông báo:
+```text
+🚀 Server running at http://localhost:3000
+✅ Database initialized at data/dashboard.sqlite
+```
+👉 Hãy mở trình duyệt web bất kỳ (Google Chrome, Cốc Cốc, Safari, Edge, Brave...) và truy cập ngay vào địa chỉ:  
+# 👉 **http://localhost:3000** 👈
+
+---
+
+### 🛠️ Bảng Lệnh Khởi Chạy & Điều Khiển Máy Chủ:
+
+| Lệnh thực thi | Mô tả chi tiết & Trường hợp sử dụng |
+| :--- | :--- |
+| **`npm start`** | **Khởi chạy tiêu chuẩn (Khuyên dùng)**: Chạy máy chủ mượt mà và tối ưu nhất cho việc sử dụng hằng ngày. |
+| **`npm run dev`** | **Chế độ phát triển (Dev Mode)**: Tự động tải lại máy chủ (`node --watch server.js`) ngay khi bạn chỉnh sửa file mã nguồn. |
+| **`npm run build`** | **Biên dịch mã nguồn**: Biên dịch TypeScript và đóng gói giao diện Vite vào thư mục `dist/`. |
+| **`npm test`** | **Kiểm thử hệ thống**: Tự động kiểm tra tính toàn vẹn của cơ sở dữ liệu SQLite, các API và logic phân tích. |
+| **`Ctrl + C`** | **Dừng máy chủ**: Nhấn tổ hợp phím `Ctrl + C` tại cửa sổ Terminal khi muốn tắt server. |
+| **Đổi cổng kết nối** | Nếu cổng `3000` đang bị ứng dụng khác sử dụng, mở `.env` sửa dòng `PORT=3001` rồi chạy lại `npm start` và truy cập `http://localhost:3001`. |
+
+---
+
+## 🔑 HƯỚNG DẪN LẤY GOOGLE GEMINI API KEY (100% MIỄN PHÍ)
+
+Trước khi bắt đầu, bạn hãy hoàn toàn yên tâm:
+- 🟢 **Dữ liệu giá Binance & Tin tức Crypto**: Đã tích hợp sẵn, **TỰ ĐỘNG 100%, KHÔNG CẦN KEY**.
+- 🌟 **Để Hội đồng AI hoạt động thông minh nhất**: Bạn **CHỈ CẦN DUY NHẤT 1 KEY MIỄN PHÍ**: **Google Gemini API Key**.
+- 🧠 **DeepSeek / OpenAI / Ollama**: **HOÀN TOÀN TÙY CHỌN (OPTIONAL)** — Dành riêng cho ai muốn trải nghiệm thêm các dòng AI khác, người mới không cần quan tâm.
+
+---
+
+### 1. 🌟 Google Gemini API Key (KHUYÊN DÙNG — MIỄN PHÍ 100% — KHÔNG CẦN VISA)
+
+> **Mục đích**: Cung cấp "bộ não" cho Hội đồng 4 AI Tác tử (Kỹ thuật SMC, Dòng tiền vĩ mô, Quản trị rủi ro, Phản biện bẫy giá) và Trợ lý AI Coaching kỷ luật giao dịch.  
+> **Chi phí**: **Miễn phí 100%** từ Google AI Studio (cho phép 15 yêu cầu/phút, 1.500 yêu cầu/ngày — đủ dùng thoải mái cho cá nhân).  
+> ⚠️ **Đây là KEY DUY NHẤT bạn nên lấy để trải nghiệm trọn vẹn trí tuệ nhân tạo của ứng dụng.**
+
+#### Các bước lấy Key (chỉ mất 1 phút):
+1. Mở trình duyệt web và truy cập vào trang: 👉 **[https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**
+2. Đăng nhập bằng tài khoản **Gmail** thông thường của bạn.
+3. Nhấp vào nút xanh biển nổi bật: **"Create API key"** (Tạo khóa API).
+4. Trong bảng hiện lên: Chọn mục **"Create API key in new project"** (Tạo khóa trong dự án mới).
+5. Sau vài giây, hệ thống sẽ hiện ra một chuỗi ký tự dài bắt đầu bằng chữ `AIzaSy...`.
+6. Nhấp vào nút **Copy** (Sao chép) bên cạnh chuỗi ký tự đó và dán vào dòng `GEMINI_API_KEY=` trong file `.env`.  
+   *(Lưu ý: Không chia sẻ mã này cho người khác để bảo mật).*
+
+---
+
+### 2. 🧠 [TÙY CHỌN / OPTIONAL] Các Mô Hình AI Bổ Sung (Dành Cho Ai Thích Trải Nghiệm Thêm)
+
+<details>
+<summary><b>Nhấp vào đây nếu bạn muốn cấu hình thêm DeepSeek, OpenAI GPT-4o hoặc Ollama Offline</b></summary>
+
+- **DeepSeek API Key** (`deepseek-reasoner`):
+  1. Truy cập: 👉 [https://platform.deepseek.com/](https://platform.deepseek.com/)
+  2. Đăng nhập ➔ Vào mục **API Keys** ➔ Tạo key và dán vào `DEEPSEEK_API_KEY=` trong `.env`.
+- **OpenAI API Key** (`GPT-4o`):
+  1. Truy cập: 👉 [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+  2. Tạo secret key và cấu hình nếu bạn có sẵn tài khoản OpenAI trả phí.
+- **Ollama Local (Chạy AI hoàn toàn Offline không tốn mạng)**:
+  1. Tải Ollama từ [https://ollama.com](https://ollama.com).
+  2. Mở Terminal gõ: `ollama run deepseek-r1:8b` (hệ thống tự động kết nối qua `http://127.0.0.1:11434`).
+
+</details>
+
+---
+
+## ⚙️ CHI TIẾT FILE CẤU HÌNH `.env`
+
+Dưới đây là nội dung mẫu chuẩn của file `.env` (bạn chỉ cần điền `GEMINI_API_KEY`, các dòng khác giữ nguyên mặc định):
 
 ```env
 # ==============================================================================
@@ -199,49 +165,16 @@ GEMINI_MODEL_PRO=gemini-2.5-pro
 GEMINI_MODEL=gemini-2.5-flash
 GEMINI_MODEL_LITE=gemini-2.0-flash-lite
 
-# [TÙY CHỌN / OPTIONAL - KHÔNG BẮT BUỘC] Chỉ điền nếu bạn muốn dùng thêm DeepSeek
+# [TÙY CHỌN / OPTIONAL] Chỉ điền nếu bạn muốn dùng thêm DeepSeek
 DEEPSEEK_API_KEY=
 DEEPSEEK_MODEL_REASONER=deepseek-reasoner
 DEEPSEEK_MODEL=deepseek-chat
 
-# [TÙY CHỌN / OPTIONAL - KHÔNG BẮT BUỘC] Chạy AI Offline bằng Ollama (không cần chỉnh sửa nếu không dùng)
+# [TÙY CHỌN / OPTIONAL] Chạy AI Offline bằng Ollama (không cần chỉnh sửa nếu không dùng)
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 OLLAMA_MODEL_DEEP=deepseek-r1:8b
 OLLAMA_MODEL=qwen2.5:7b
-
-# 3. [TÙY CHỌN / OPTIONAL - KHÔNG BẮT BUỘC] CẢNH BÁO TÍN HIỆU TELEGRAM 24/7 VỀ ĐIỆN THOẠI
-# (Nếu chỉ dùng trên máy tính thì cứ để trống 2 dòng này)
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
-TELEGRAM_ALERT_MIN_SCORE=82
 ```
-
-👉 **Lưu file lại** (`Ctrl + S` trên Windows hoặc `Cmd + S` trên Mac).
-
----
-
-## 🖥️ HƯỚNG DẪN KHỞI CHẠY & SỬ DỤNG ỨNG DỤNG
-
-Sau khi đã lưu file `.env`, bạn chạy 2 lệnh sau trên Terminal / CMD:
-
-```bash
-# 1. Biên dịch mã nguồn (chỉ mất vài giây)
-npm run build
-
-# 2. Khởi động máy chủ ứng dụng
-npm start
-```
-
-Khi màn hình hiện thông báo:
-```text
-🚀 Server running at http://localhost:3000
-✅ Database initialized at data/dashboard.sqlite
-```
-
-👉 Hãy mở trình duyệt web (Chrome, Cốc Cốc, Safari, Edge...) và truy cập vào địa chỉ:  
-**`http://localhost:3000`**
-
-*(Mẹo: Khi muốn tắt ứng dụng, bạn chỉ cần quay lại cửa sổ Terminal / CMD và nhấn `Ctrl + C`).*
 
 ---
 
@@ -385,14 +318,6 @@ Rất đơn giản, bạn chỉ cần copy 2 thư mục:
 - Thư mục `data/` (chứa toàn bộ lệnh và ghi chú)
 - Thư mục `uploads/` (chứa các hình ảnh biểu đồ bạn đã tải lên)  
 Lưu vào USB hoặc Google Drive. Khi sang máy mới, bạn chỉ cần dán 2 thư mục này vào dự án là xong.
-</details>
-
-<details>
-<summary><b>5. Tại sao tôi đã điền Telegram Token nhưng không nhận được tin nhắn?</b></summary>
-
-Hãy kiểm tra 2 điểm sau:
-1. Bạn đã mở con bot của bạn trên Telegram và bấm nút **Start** (hoặc gửi cho nó 1 tin nhắn) chưa? Nếu chưa nhắn tin trước, Telegram sẽ chặn bot không cho gửi tin nhắn đến bạn.
-2. Kiểm tra xem `TELEGRAM_CHAT_ID` đã điền đúng dãy số lấy từ `@userinfobot` chưa.
 </details>
 
 ---
