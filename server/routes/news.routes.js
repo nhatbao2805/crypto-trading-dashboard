@@ -17,8 +17,20 @@ async function handleNewsRoutes(req, res, pathname, method, query, body) {
     return await newsController.getNewsArticles(req, res, query);
   }
 
+  if (pathname === '/api/news/macro' && method === 'GET') {
+    return await newsController.getMacroIntelligence(req, res, query);
+  }
+
   if (pathname === '/api/news/analyze' && method === 'POST') {
     return await newsController.analyzeNewsImpact(req, res, body);
+  }
+
+  if (pathname === '/api/news/daily-brief' && method === 'GET') {
+    return await newsController.getDailyBrief(req, res);
+  }
+
+  if (pathname === '/api/news/daily-brief/generate' && method === 'POST') {
+    return await newsController.generateDailyBrief(req, res);
   }
 
   if ((pathname === '/api/news/latest' || pathname === '/api/news/history') && method === 'GET') {

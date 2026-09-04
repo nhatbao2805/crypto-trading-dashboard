@@ -43,6 +43,7 @@ export const JournalModule: React.FC<JournalModuleProps> = ({
   const [editingNote, setEditingNote] = useState<NoteEntry | null>(null);
   const [viewingNote, setViewingNote] = useState<NoteEntry | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
+  const [selectedAiReview, setSelectedAiReview] = useState<TradeReviewResult | null>(null);
 
   const loadTrades = async (filters?: any) => {
     try {
@@ -199,6 +200,7 @@ export const JournalModule: React.FC<JournalModuleProps> = ({
         <AuditorTab
           onOpenHistory={() => setIsHistoryModalOpen(true)}
           livePrices={livePrices}
+          initialReview={selectedAiReview}
         />
       )}
 
@@ -238,7 +240,7 @@ export const JournalModule: React.FC<JournalModuleProps> = ({
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         onSelectReview={(r) => {
-          // Handled review selection
+          setSelectedAiReview(r);
         }}
       />
     </div>

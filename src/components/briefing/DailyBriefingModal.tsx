@@ -183,13 +183,13 @@ export const DailyBriefingModal: React.FC<DailyBriefingModalProps> = ({
                         symbol: "BTC",
                         name: "Bitcoin",
                         role: "Dẫn dắt xu hướng",
-                        price: data.macro.btcPrice,
-                        change24h: data.macro.btcChange24h,
-                        rsi: data.macro.rsi14,
-                        trend: data.macro.trend
+                        price: data.macro?.btcPrice || "$0",
+                        change24h: data.macro?.btcChange24h || "0%",
+                        rsi: data.macro?.rsi14 || 50,
+                        trend: data.macro?.trend || "NEUTRAL"
                       }
                     ]).map((p, idx) => {
-                      const isPos = p.change24h.startsWith("+");
+                      const isPos = String(p.change24h || "").startsWith("+");
                       return (
                         <div key={idx} className="p-2.5 rounded-xl bg-[#070a12] border border-slate-800/80 hover:border-slate-700 transition-colors">
                           <div className="flex items-center justify-between gap-1">
@@ -225,38 +225,46 @@ export const DailyBriefingModal: React.FC<DailyBriefingModalProps> = ({
                 </div>
 
                 <div className="space-y-2.5">
-                  {data.candidateSetups.map((setup, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3.5 rounded-xl bg-[#070a12] border border-slate-800/80 hover:border-slate-700 transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-white text-xs">{setup.coin}/USDT</span>
-                          <span className="font-mono text-slate-300 text-xs">{setup.price}</span>
-                          <span className={`font-mono text-[10px] font-bold ${setup.change24h.startsWith("+") ? "text-emerald-400" : "text-rose-400"}`}>
-                            {setup.change24h}
+                  {(data.candidateSetups || []).map((setup, idx) => {
+                    const isPos = String(setup.change24h || "").startsWith("+");
+                    const isLong =
+                      (setup.direction || "").toUpperCase().includes("MUA") ||
+                      (setup.direction || "").toUpperCase().includes("LONG") ||
+                      (setup.direction || "").toUpperCase().includes("BUY");
+
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl bg-[#070a12] border border-slate-800/80 hover:border-slate-700 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-white text-xs">{setup.coin}/USDT</span>
+                            <span className="font-mono text-slate-300 text-xs">{setup.price}</span>
+                            <span className={`font-mono text-[10px] font-bold ${isPos ? "text-emerald-400" : "text-rose-400"}`}>
+                              {setup.change24h}
+                            </span>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                              isLong
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                            }`}
+                          >
+                            {setup.direction}
                           </span>
                         </div>
-                        <span
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                            setup.direction.includes("MUA") || setup.direction.includes("LONG")
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                          }`}
-                        >
-                          {setup.direction}
-                        </span>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          {setup.thesis}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-300 leading-relaxed">
-                        {setup.thesis}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Avoid coins alert */}
-                {data.avoidCoins.length > 0 && (
+                {data.avoidCoins && data.avoidCoins.length > 0 && (
                   <div className="mt-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs">
                     <div className="flex items-center gap-1.5 font-bold text-rose-400 mb-1">
                       <AlertTriangle className="w-3.5 h-3.5" />
@@ -281,7 +289,7 @@ export const DailyBriefingModal: React.FC<DailyBriefingModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {data.timeAlerts.map((ta, i) => (
+                  {(data.timeAlerts || []).map((ta, i) => (
                     <div
                       key={i}
                       className="p-3 rounded-xl bg-[#070a12] border border-slate-800/80"
@@ -301,7 +309,7 @@ export const DailyBriefingModal: React.FC<DailyBriefingModalProps> = ({
                   <span>QUY TẮC KỶ LUẬT & BẢO TOÀN VỐN HÔM NAY</span>
                 </div>
                 <ul className="space-y-1.5 text-[11px] text-slate-300">
-                  {data.disciplineRules.map((rule, idx) => (
+                  {(data.disciplineRules || []).map((rule, idx) => (
                     <li key={idx} className="flex items-start gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                       <span>{rule}</span>

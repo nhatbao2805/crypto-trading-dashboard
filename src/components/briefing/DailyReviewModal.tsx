@@ -68,7 +68,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
 
   if (!isOpen) return null;
 
-  const pnl = data?.stats.totalPnL || 0;
+  const pnl = data?.stats?.totalPnL || 0;
   const isProfit = pnl >= 0;
 
   return createPortal(
@@ -141,20 +141,20 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                 <div className="p-3 rounded-xl bg-[#070a12] border border-slate-800">
                   <div className="text-[10px] text-slate-400 font-medium">Tổng Số Lệnh</div>
                   <div className="text-base font-black text-white font-mono mt-0.5">
-                    {data.stats.totalTrades}
+                    {data.stats?.totalTrades ?? 0}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
-                    {data.stats.winningTrades} Thắng • {data.stats.losingTrades} Thua • {data.stats.beTrades} Hòa
+                    {data.stats?.winningTrades ?? 0} Thắng • {data.stats?.losingTrades ?? 0} Thua • {data.stats?.beTrades ?? 0} Hòa
                   </div>
                 </div>
 
                 <div className="p-3 rounded-xl bg-[#070a12] border border-slate-800">
                   <div className="text-[10px] text-slate-400 font-medium">Tỷ Lệ Thắng (Win Rate)</div>
                   <div className="text-base font-black text-white font-mono mt-0.5">
-                    {data.stats.winRate}%
+                    {data.stats?.winRate ?? 0}%
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
-                    {data.stats.closedTrades} lệnh đã chốt
+                    {data.stats?.closedTrades ?? 0} lệnh đã chốt
                   </div>
                 </div>
 
@@ -164,7 +164,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                     {isProfit ? "+" : ""}${formatMoney(pnl)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
-                    PF: {data.stats.profitFactor}
+                    PF: {data.stats?.profitFactor ?? "0.00"}
                   </div>
                 </div>
 
@@ -172,7 +172,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                   <div className="text-[10px] text-purple-300 font-medium">Điểm Kỷ Luật AI</div>
                   <div className="text-base font-black text-purple-300 font-mono mt-0.5 flex items-center gap-1">
                     <Award className="w-4 h-4" />
-                    <span>{data.audit.disciplineScore} / 10</span>
+                    <span>{data.audit?.disciplineScore ?? 10} / 10</span>
                   </div>
                   <div className="text-[10px] text-purple-400/80 mt-0.5">
                     Chẩn đoán theo 50 chương
@@ -184,10 +184,10 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
               <div>
                 <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-2">
                   <FileCheck className="w-4 h-4 text-sky-400" />
-                  <span>Danh Sách Lệnh Khớp Trong Ngày ({data.trades.length})</span>
+                  <span>Danh Sách Lệnh Khớp Trong Ngày ({(data.trades || []).length})</span>
                 </h4>
 
-                {data.trades.length === 0 ? (
+                {(data.trades || []).length === 0 ? (
                   <div className="p-6 text-center text-slate-500 bg-[#070a12] rounded-xl border border-slate-800">
                     Hôm nay bạn chưa mở hoặc đóng lệnh nào. Rất tốt nếu bạn đang kiên nhẫn đứng ngoài thị trường!
                   </div>
@@ -206,7 +206,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                          {data.trades.map((t) => {
+                          {(data.trades || []).map((t) => {
                             const tPnl = Number(t.pnl_amount) || 0;
                             const isWin = t.status === "WIN" || tPnl > 0;
                             const isLoss = t.status === "LOSS" || tPnl < 0;
@@ -268,7 +268,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                 </div>
 
                 {/* Strengths */}
-                {data.audit.strengths.length > 0 && (
+                {data.audit?.strengths && data.audit.strengths.length > 0 && (
                   <div>
                     <div className="text-[11px] font-bold text-emerald-400 mb-1">
                       ✅ Điểm Tích Cực Trong Phiên:
@@ -285,7 +285,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                 )}
 
                 {/* Weaknesses */}
-                {data.audit.weaknesses.length > 0 && (
+                {data.audit?.weaknesses && data.audit.weaknesses.length > 0 && (
                   <div>
                     <div className="text-[11px] font-bold text-rose-400 mb-1">
                       ⚠️ Điểm Cần Khắc Phục / Cảnh Báo:
@@ -302,7 +302,7 @@ export const DailyReviewModal: React.FC<DailyReviewModalProps> = ({
                 )}
 
                 {/* Lessons */}
-                {data.audit.lessons.length > 0 && (
+                {data.audit?.lessons && data.audit.lessons.length > 0 && (
                   <div className="pt-1 border-t border-slate-800">
                     <div className="text-[11px] font-bold text-amber-400 mb-1">
                       💡 Bài Học Đúc Kết Cho Phiên Ngày Mai:

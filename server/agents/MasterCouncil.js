@@ -8,6 +8,7 @@ const ragService = require('../services/rag.service');
 const cacheService = require('../services/cache.service');
 const conversationMemoryService = require('../services/conversation-memory.service');
 const binanceService = require('../services/binance.service');
+const newsService = require('../services/news.service');
 
 class MasterCouncil {
   constructor() {
@@ -206,11 +207,18 @@ class MasterCouncil {
 
     const rag = ragService.buildRagContext({ coin: coinUpper, topic: 'smc bẫy fakeout bull trap tâm lý pre-mortem', includeHabits: true });
 
+    // Fetch Macro Intelligence from Investing.com & Forex Factory
+    const macroIntel = await newsService.getMacroIntelligence(coinUpper).catch(() => null);
+    const macroHeadlineSummary = macroIntel?.macroSummary 
+      ? `DXY: ${macroIntel.macroSummary.dxyOutlook} | FED: ${macroIntel.macroSummary.fedRateOutlook} | Lạm phát: ${macroIntel.macroSummary.inflationStatus} | ETF: ${macroIntel.macroSummary.etfFlowSummary}`
+      : 'Thị trường vĩ mô toàn cầu duy trì cân bằng thanh khoản.';
+    const highImpactMacroEvents = (macroIntel?.highImpactEvents || []).map(e => e.title).join('; ') || 'Lịch kinh tế Forex Factory tuần này ổn định.';
+
     // 3. Single-Pass Multi-Agent Prompt (Combines 4 Sub-Agents + Sentinel Pre-Mortem + Master Council in 1 LLM Call)
     let debateResult = null;
     try {
-      const systemPrompt = `Bạn là Hội Đồng Multi-Agent Crypto gồm 4 chuyên gia: Alpha (Kỹ thuật SMC), Macro (Dòng tiền), Guardian (Quản trị vốn), Sentinel (Luật sư của Quỷ).
-Hãy phân tích và trả về JSON duy nhất chứa đầy đủ góc nhìn của cả 4 chuyên gia và phán quyết cuối cùng.`;
+      const systemPrompt = `Bạn là Hội Đồng Multi-Agent Crypto gồm 4 chuyên gia: Alpha (Kỹ thuật SMC), Macro (Vĩ Mô Toàn Cầu Investing.com & Forex Factory), Guardian (Quản trị vốn), Sentinel (Luật sư của Quỷ).
+Hãy phân tích và trả về JSON duy nhất chứa đầy đủ góc nhìn của cả 4 chuyên gia và phán quyết cuối cùng, kết hợp dữ liệu SMC thực tế với bức tranh Vĩ mô toàn cầu.`;
 
       const userPrompt = `
 DỮ LIỆU THỰC TẾ BINANCE:
@@ -221,12 +229,16 @@ DỮ LIỆU THỰC TẾ BINANCE:
 - Funding: ${fundingRate} | Volume 24h: $${(volUsdt / 1e6).toFixed(1)}M
 - Stop Loss đề xuất: $${slPrice} | TP1: $${tp1Price} | TP2: $${tp2Price}
 
+DỮ LIỆU VĨ MÔ INVESTING.COM & FOREX FACTORY:
+- Tóm lược Vĩ mô: ${macroHeadlineSummary}
+- Lịch kinh tế USD High-Impact: ${highImpactMacroEvents}
+
 ${rag.combinedPromptText}
 
 YÊU CẦU TRẢ VỀ JSON:
 {
   "technical_summary": "Tóm tắt cấu trúc nến SMC & FVG (1-2 câu)",
-  "macro_summary": "Tóm tắt dòng tiền & funding (1-2 câu)",
+  "macro_summary": "Tóm tắt dòng tiền vĩ mô từ Investing.com & Forex Factory (1-2 câu)",
   "risk_advice": "Lời khuyên đòn bẩy và quy tắc 1-2% vốn",
   "sentinel_trap_warning": "Cảnh báo bẫy thanh khoản cá mập cốt lõi",
   "sentinel_critical_question": "Câu hỏi chất vấn tâm lý trader",
@@ -265,13 +277,13 @@ YÊU CẦU TRẢ VỀ JSON:
 
       const macroView = {
         agent_id: 'agent_macro',
-        agent_name: 'Agent Macro (Vĩ Mô & Dòng Tiền)',
+        agent_name: 'Agent Macro (Vĩ Mô Investing & Forex Factory)',
         avatar: '📰',
         signal: change24h >= 0 ? 'BULLISH' : 'BEARISH',
         fundingRate,
-        fundingAnalysis: `Funding rate ${fundingRate}. Dòng tiền 24h duy trì ở mức ${(volUsdt / 1e6).toFixed(1)}M USD.`,
+        fundingAnalysis: `Funding rate ${fundingRate}. Dòng tiền 24h: ${(volUsdt / 1e6).toFixed(1)}M USD. Tác động vĩ mô: ${highImpactMacroEvents.slice(0, 100)}...`,
         volumeUsd: `$${(volUsdt / 1e6).toFixed(1)}M USD`,
-        summary: parsed.macro_summary || `Thanh khoản 24h đạt $${(volUsdt / 1e6).toFixed(1)}M USD, tâm lý thị trường ổn định.`
+        summary: parsed.macro_summary || `Vĩ mô Investing.com & Forex Factory: ${macroHeadlineSummary.slice(0, 130)}... Thanh khoản 24h đạt $${(volUsdt / 1e6).toFixed(1)}M USD.`
       };
 
       // Calculate R:R ratio
@@ -369,6 +381,10 @@ YÊU CẦU TRẢ VỀ JSON:
       // Fallback via existing sub-agents
       const technicalView = await this.technicalAgent.analyze(coinUpper, market);
       const macroView = await this.macroAgent.analyze(coinUpper, market);
+      if (macroView) {
+        macroView.agent_name = 'Agent Macro (Vĩ Mô Investing & Forex Factory)';
+        macroView.summary = `${macroView.summary || ''} Vĩ mô Investing & Forex Factory: ${macroHeadlineSummary.slice(0, 100)}...`.trim();
+      }
       const riskView = await this.riskAgent.analyze(coinUpper, market, technicalView);
       const validatorView = await this.validatorAgent.analyze(coinUpper, market, technicalView);
 
@@ -561,15 +577,20 @@ Trả về ĐÚNG định dạng JSON:
     const memory = conversationMemoryService.getOptimizedPromptContext(sessionId);
     const rag = ragService.buildRagContext({ coin: coinUpper, topic: promptText, includeHabits: true });
 
+    const macroIntel = await newsService.getMacroIntelligence(coinUpper).catch(() => null);
+    const macroHeadlineSummary = macroIntel?.macroSummary 
+      ? `DXY: ${macroIntel.macroSummary.dxyOutlook} | FED: ${macroIntel.macroSummary.fedRateOutlook}`
+      : 'Vĩ mô Forex Factory & DXY ổn định';
+
     let reply = '';
     try {
       const systemPrompt = `Bạn là Hội Đồng AI Trader gồm 4 chuyên gia đa tác tử:
 1. Agent Alpha (Kỹ thuật SMC, mô hình nến, RSI, FVG)
-2. Agent Macro (Dòng tiền phái sinh, Funding Rate, áp lực mua bán)
+2. Agent Macro (Vĩ Mô Toàn Cầu Investing.com & Forex Factory, Dòng tiền phái sinh, Funding Rate)
 3. Agent Guardian (Quản trị vốn 1-2%, tỷ lệ R:R, điểm Stop Loss)
 4. Agent Sentinel (Luật sư của Quỷ - chuyên vạch trần bẫy Fakeout / Bull trap / Bear trap)
 
-Nhiệm vụ: Trả lời trực tiếp câu hỏi của Trader dựa trên DỮ LIỆU NẾN THẬT VÀ CHỈ SỐ THỰC TẾ được cung cấp bên dưới.
+Nhiệm vụ: Trả lời trực tiếp câu hỏi của Trader dựa trên DỮ LIỆU NẾN THẬT, CHỈ SỐ THỰC TẾ VÀ TIN TỨC VĨ MÔ ĐƯỢC CUNG CẤP.
 Hãy phân tích sắc bén, chỉ rõ các mốc giá và số liệu thật, không trả lời chung chung giáo điều.`;
 
       const currentVal = technicalAnalysis?.currentPrice || market.price;
@@ -588,6 +609,7 @@ DỮ LIỆU NẾN THỜI GIAN THỰC TỪ SÀN BINANCE:
 - Chỉ số RSI(14) chuẩn nến 1H: ${technicalAnalysis?.rsi || '50'}
 - Vùng Hỗ trợ gần nhất: $${sVal ? this.formatDecimals(sVal, currentVal) : 'Hỗ trợ động'}
 - Vùng Kháng cự gần nhất: $${rVal ? this.formatDecimals(rVal, currentVal) : 'Kháng cự động'}
+- Bối cảnh Vĩ mô (Investing.com & Forex Factory): ${macroHeadlineSummary}
 ${rag.combinedPromptText}
 
 CÂU HỎI TRỰC TIẾP CỦA TRADER: "${promptText}"`;
@@ -606,7 +628,7 @@ CÂU HỎI TRỰC TIẾP CỦA TRADER: "${promptText}"`;
     if (!reply || reply.length < 10) {
       const currentVal = technicalAnalysis?.currentPrice || market.price;
       const formattedPrice = this.formatDecimals(currentVal, currentVal);
-      reply = `[Hội Đồng Master Council ${coinUpper}]:\n• Agent Alpha (Kỹ Thuật SMC): Cấu trúc nến ${coinUpper} quanh giá $${formattedPrice} cần kiên nhẫn chờ cây nến 15m đóng cửa hoàn toàn trước khi mở vị thế.\n• Agent Macro: Theo dõi sát sao Funding Rate và dòng tiền phái sinh để tránh bẫy thanh lý.\n• Agent Guardian: Luôn tuân thủ quy tắc quản trị rủi ro không quá 1-2% tổng vốn cho một vị thế.\n• Agent Sentinel: Đề phòng các cú quét râu thanh khoản (Liquidity Sweep) tại các vùng đỉnh đáy then chốt.`;
+      reply = `[Hội Đồng Master Council ${coinUpper}]:\n• Agent Alpha (Kỹ Thuật SMC): Cấu trúc nến ${coinUpper} quanh giá $${formattedPrice} cần kiên nhẫn chờ cây nến 15m đóng cửa hoàn toàn trước khi mở vị thế.\n• Agent Macro (Vĩ Mô Investing & Forex Factory): ${macroHeadlineSummary}. Theo dõi sát sao dòng vốn ETF và Funding Rate để phòng ngừa biến động bất ngờ.\n• Agent Guardian: Luôn tuân thủ quy tắc quản trị rủi ro không quá 1-2% tổng vốn cho một vị thế.\n• Agent Sentinel: Đề phòng các cú quét râu thanh khoản (Liquidity Sweep / Judas Swing) tại các vùng đỉnh đáy then chốt.`;
     }
 
     // Record council reply in memory

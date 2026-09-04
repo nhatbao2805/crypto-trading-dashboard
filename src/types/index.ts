@@ -3,7 +3,7 @@
 export type MainTab = "theory" | "practice" | "journal" | "news" | "ai_trader" | "human_trader";
 export type TheorySubTab = "reader" | "atlas";
 export type JournalSubTab = "trades" | "notes" | "aireview";
-export type NewsSubTab = "analyze" | "feed";
+export type NewsSubTab = "daily" | "analyze" | "feed" | "article_reader";
 export type AiTraderSubTab = "screener" | "cockpit" | "workspace" | "council" | "hypo_eval" | "chat";
 export type HumanTraderSubTab = "trade_desk" | "positions" | "history";
 
@@ -218,6 +218,7 @@ export interface NewsArticle {
   title: string;
   url: string;
   source: string;
+  sourceType?: "INVESTING" | "FOREX_FACTORY" | "CRYPTO";
   publishedAt?: string;
   category?: string;
   summary?: string;
@@ -245,6 +246,66 @@ export interface NewsAnalysisResult {
   articles: NewsArticle[];
   terminalLogs?: string;
   time?: string;
+}
+
+export interface FocusCoinDetail {
+  coin: string;
+  currentPrice: number;
+  change24h: number;
+  impactHeadline: string;
+  sentiment: "BULLISH" | "BEARISH" | "NEUTRAL";
+  analysis: string;
+}
+
+export interface ActionableTradeSetup {
+  coin: string;
+  bias: "LONG" | "SHORT" | "CHỜ RETEST";
+  entryZone: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
+  riskRewardRatio: string;
+  trapWarning: string;
+  rationale: string;
+}
+
+export interface ShortTermHoldItem {
+  coin: string;
+  name?: string;
+  holdingPeriod: string; // e.g. "3 - 7 ngày", "1 - 2 tuần"
+  accumulationZone: string;
+  targetPrice: string;
+  invalidationLevel: string;
+  catalyst: string;
+  riskRating: "THẤP" | "TRUNG BÌNH" | "CAO";
+  rationale: string;
+}
+
+export interface DailyMarketBrief {
+  id?: number;
+  date: string;
+  macroHeadline: string;
+  marketMood: "BULLISH" | "BEARISH" | "NEUTRAL" | "GREED" | "FEAR";
+  sentimentScore: number;
+  executiveSummary: string[];
+  focusCoins: FocusCoinDetail[];
+  actionableTradeSetups: ActionableTradeSetup[];
+  shortTermHolds?: ShortTermHoldItem[];
+  macroSources?: string[];
+  riskNotice: string;
+  createdAt?: string;
+  rawData?: any;
+  // Backward compatibility / DB aliases
+  macro_headline?: string;
+  market_mood?: string;
+  sentiment_score?: number;
+  executive_summary?: string[];
+  focus_coins?: FocusCoinDetail[];
+  actionable_trade_setups?: ActionableTradeSetup[];
+  short_term_holds?: ShortTermHoldItem[];
+  macro_sources?: string[];
+  risk_notice?: string;
+  created_at?: string;
 }
 
 export interface ChatMessage {

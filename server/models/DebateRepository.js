@@ -1,6 +1,31 @@
 const db = require('../config/database');
 
 class DebateRepository {
+  constructor() {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS daily_market_briefs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        macro_headline TEXT NOT NULL,
+        market_mood TEXT NOT NULL,
+        sentiment_score REAL DEFAULT 0.0,
+        executive_summary TEXT NOT NULL,
+        focus_coins TEXT NOT NULL,
+        actionable_trade_setups TEXT NOT NULL,
+        short_term_holds TEXT,
+        risk_notice TEXT,
+        raw_data TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    try {
+      db.exec(`ALTER TABLE daily_market_briefs ADD COLUMN short_term_holds TEXT;`);
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+  }
+
   saveAiDebate(data) {
     const now = new Date().toISOString();
     const stmt = db.prepare(`
@@ -178,6 +203,97 @@ class DebateRepository {
     const row = db.prepare('SELECT * FROM practice_progress WHERE id = 1').get();
     if (!row) return null;
     return JSON.parse(row.stats_data || '{}');
+  }
+
+  saveDailyBrief(data) {
+    const now = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO daily_market_briefs (
+        date, macro_headline, market_mood, sentiment_score,
+        executive_summary, focus_coins, actionable_trade_setups,
+        short_term_holds, risk_notice, raw_data, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const result = stmt.run(
+      data.date || new Date().toISOString().split('T')[0],
+      data.macroHeadline || data.macro_headline || 'Bản Tin Vĩ Mô & Thị Trường',
+      data.marketMood || data.market_mood || 'NEUTRAL',
+      Number(data.sentimentScore ?? data.sentiment_score ?? 0),
+      typeof (data.executiveSummary ?? data.executive_summary) === 'string'
+        ? (data.executiveSummary ?? data.executive_summary)
+        : JSON.stringify(data.executiveSummary ?? data.executive_summary ?? []),
+      typeof (data.focusCoins ?? data.focus_coins) === 'string'
+        ? (data.focusCoins ?? data.focus_coins)
+        : JSON.stringify(data.focusCoins ?? data.focus_coins ?? []),
+      typeof (data.actionableTradeSetups ?? data.actionable_trade_setups) === 'string'
+        ? (data.actionableTradeSetups ?? data.actionable_trade_setups)
+        : JSON.stringify(data.actionableTradeSetups ?? data.actionable_trade_setups ?? []),
+      typeof (data.shortTermHolds ?? data.short_term_holds) === 'string'
+        ? (data.shortTermHolds ?? data.short_term_holds)
+        : JSON.stringify(data.shortTermHolds ?? data.short_term_holds ?? []),
+      data.riskNotice || data.risk_notice || '',
+      typeof (data.rawData ?? data.raw_data) === 'string'
+        ? (data.rawData ?? data.raw_data)
+        : JSON.stringify(data.rawData ?? data.raw_data ?? {}),
+      now
+    );
+
+    return this.getDailyBriefById(result.lastInsertRowid);
+  }
+
+  getDailyBriefById(id) {
+    const row = db.prepare('SELECT * FROM daily_market_briefs WHERE id = ?').get(Number(id));
+    if (!row) return null;
+    return this._formatDailyBrief(row);
+  }
+
+  getLatestDailyBrief() {
+    const row = db.prepare('SELECT * FROM daily_market_briefs ORDER BY id DESC LIMIT 1').get();
+    if (!row) return null;
+    return this._formatDailyBrief(row);
+  }
+
+  _formatDailyBrief(row) {
+    const parseSafe = (val, fallback) => {
+      try {
+        return typeof val === 'string' ? JSON.parse(val) : (val || fallback);
+      } catch (e) {
+        return fallback;
+      }
+    };
+
+    const executiveSummary = parseSafe(row.executive_summary, []);
+    const focusCoins = parseSafe(row.focus_coins, []);
+    const actionableTradeSetups = parseSafe(row.actionable_trade_setups, []);
+    const shortTermHolds = parseSafe(row.short_term_holds, []);
+    const rawData = parseSafe(row.raw_data, {});
+
+    return {
+      id: row.id,
+      date: row.date,
+      macroHeadline: row.macro_headline,
+      marketMood: row.market_mood,
+      sentimentScore: Number(row.sentiment_score) || 0,
+      executiveSummary,
+      focusCoins,
+      actionableTradeSetups,
+      shortTermHolds,
+      riskNotice: row.risk_notice || '',
+      rawData,
+      createdAt: row.created_at,
+      // Alias snake_case
+      macro_headline: row.macro_headline,
+      market_mood: row.market_mood,
+      sentiment_score: Number(row.sentiment_score) || 0,
+      executive_summary: executiveSummary,
+      focus_coins: focusCoins,
+      actionable_trade_setups: actionableTradeSetups,
+      short_term_holds: shortTermHolds,
+      risk_notice: row.risk_notice || '',
+      raw_data: rawData,
+      created_at: row.created_at
+    };
   }
 }
 

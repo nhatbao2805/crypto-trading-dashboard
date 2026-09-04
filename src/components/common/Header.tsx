@@ -12,12 +12,12 @@ import {
 } from "lucide-react";
 import { MainTab } from "../../types";
 import { binanceService, formatCoinPrice } from "../../services/binance";
-import { DailyBriefingModal } from "../briefing/DailyBriefingModal";
 import { DailyReviewModal } from "../briefing/DailyReviewModal";
 
 interface HeaderProps {
   activeTab: MainTab;
   onOpenMobileSidebar: () => void;
+  onNavigateTab?: (tab: MainTab) => void;
 }
 
 const TICKER_SYMBOLS = ["BTC", "ETH", "SOL", "BNB", "SUI", "DOGE", "XRP"];
@@ -42,9 +42,9 @@ const TAB_META: Record<MainTab, { label: string; icon: React.ElementType; badge:
     color: "text-indigo-400"
   },
   news: {
-    label: "4. Lọc Tin Tức Tác Động & AGY Impact",
+    label: "4. Bản Tin & Chiến Lược AI",
     icon: Zap,
-    badge: "CryptoCompare & Binance",
+    badge: "Chuyên Gia Vĩ Mô",
     color: "text-amber-400"
   },
   ai_trader: {
@@ -63,12 +63,12 @@ const TAB_META: Record<MainTab, { label: string; icon: React.ElementType; badge:
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
-  onOpenMobileSidebar
+  onOpenMobileSidebar,
+  onNavigateTab
 }) => {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [changes, setChanges] = useState<Record<string, number>>({});
   const [flashStates, setFlashStates] = useState<Record<string, "up" | "down" | null>>({});
-  const [isBriefingOpen, setIsBriefingOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
 
   useEffect(() => {
@@ -127,7 +127,11 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Center: Action Buttons for Pre-Market Briefing & Post-Market Review */}
       <div className="flex items-center gap-2 shrink-0">
         <button
-          onClick={() => setIsBriefingOpen(true)}
+          onClick={() => {
+            if (onNavigateTab) {
+              onNavigateTab("news");
+            }
+          }}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all shadow-sm hover:shadow-amber-500/10 active:scale-95"
           title="Bản tin khởi động phiên & Toàn cảnh thị trường hôm nay"
         >
@@ -183,7 +187,6 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Pop-up Modals */}
-      <DailyBriefingModal isOpen={isBriefingOpen} onClose={() => setIsBriefingOpen(false)} />
       <DailyReviewModal isOpen={isReviewOpen} onClose={() => setIsReviewOpen(false)} />
     </header>
   );

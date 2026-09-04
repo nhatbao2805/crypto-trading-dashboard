@@ -23,6 +23,7 @@ import { JournalApi } from "../../services/api";
 interface AuditorTabProps {
   onOpenHistory: () => void;
   livePrices: Record<string, number>;
+  initialReview?: TradeReviewResult | null;
 }
 
 const PERIOD_PILLS: { id: AiReviewPeriod; label: string }[] = [
@@ -34,13 +35,19 @@ const PERIOD_PILLS: { id: AiReviewPeriod; label: string }[] = [
   { id: "CUSTOM", label: "⚙️ Tùy Chỉnh Ngày" },
 ];
 
-export const AuditorTab: React.FC<AuditorTabProps> = ({ onOpenHistory, livePrices }) => {
+export const AuditorTab: React.FC<AuditorTabProps> = ({ onOpenHistory, livePrices, initialReview }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<AiReviewPeriod>("WEEK");
   const [coinFilter, setCoinFilter] = useState<string>("ALL");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  const [reviewResult, setReviewResult] = useState<TradeReviewResult | null>(null);
+  const [reviewResult, setReviewResult] = useState<TradeReviewResult | null>(initialReview || null);
   const [loading, setLoading] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (initialReview) {
+      setReviewResult(initialReview);
+    }
+  }, [initialReview]);
 
   // AI Coach Chat
   const [coachMessages, setCoachMessages] = useState<Array<{ sender: "user" | "coach"; text: string }>>([]);
@@ -204,132 +211,160 @@ export const AuditorTab: React.FC<AuditorTabProps> = ({ onOpenHistory, livePrice
               Đang tính toán Stop Loss, R:R, tần suất vào lệnh và quét dấu hiệu tâm lý giao dịch trả thù...
             </p>
           </div>
-        ) : reviewResult ? (
-          <div className="space-y-6 pt-2">
-            {/* Score & Main Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Discipline Score Gauge */}
-              <div className="md:col-span-1 bg-[#070a12] border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
-                <div className="text-xs font-bold text-slate-400 mb-2">ĐIỂM KỶ LUẬT KÉP</div>
-                <div
-                  className={`text-4xl font-black font-mono my-1 ${
-                    reviewResult.disciplineScore >= 80
-                      ? "text-emerald-400"
-                      : reviewResult.disciplineScore >= 50
-                      ? "text-amber-400"
-                      : "text-rose-400"
-                  }`}
-                >
-                  {reviewResult.disciplineScore}
-                  <span className="text-sm text-slate-500 font-normal">/100</span>
-                </div>
-                <div className="text-[11px] font-semibold text-slate-400">
-                  {reviewResult.disciplineScore >= 80
-                    ? "🌟 Kỷ Luật Rất Tốt"
-                    : reviewResult.disciplineScore >= 50
-                    ? "⚠️ Cần Cải Thiện"
-                    : "🚨 Cảnh Báo Vi Phạm"}
-                </div>
-              </div>
+        ) : reviewResult ? (() => {
+            const disciplineScore = reviewResult.disciplineScore ?? (reviewResult as any).discipline_score ?? 100;
+            const totalTrades = reviewResult.totalTrades ?? (reviewResult as any).total_trades ?? 0;
+            const periodType = reviewResult.periodType ?? (reviewResult as any).period_type ?? selectedPeriod;
+            const winRate = reviewResult.winRate ?? (reviewResult as any).win_rate ?? 0;
+            const totalPnl = reviewResult.totalPnl ?? (reviewResult as any).total_pnl ?? 0;
+            const missingSlCount = reviewResult.checklistAnalysis?.missingSlCount ?? (reviewResult as any).audit?.missingSlTrades?.length ?? 0;
+            const badRrCount = reviewResult.checklistAnalysis?.badRrCount ?? 0;
+            const overtradingDays = reviewResult.checklistAnalysis?.overtradingDays ?? (reviewResult as any).audit?.overtradingDays?.length ?? 0;
+            const revengeTradeCount = reviewResult.checklistAnalysis?.revengeTradeCount ?? (reviewResult as any).audit?.revengeTrades?.length ?? 0;
+            const recommendations: string[] = reviewResult.recommendations ?? (reviewResult as any).audit?.recommendations ?? [];
+            const summary: string = reviewResult.summary ?? (reviewResult as any).ai_coach_commentary ?? (reviewResult as any).commentary ?? "";
+            const profitFactor = reviewResult.profitFactor ?? (reviewResult as any).profit_factor ?? (reviewResult as any).stats?.profitFactor ?? "0.00";
 
-              {/* Stats Summary Row */}
-              <div className="md:col-span-3 grid grid-cols-3 gap-3">
-                <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
-                  <div className="text-[11px] font-semibold text-slate-400">Tổng Số Lệnh Rà Soát</div>
-                  <div className="text-xl font-black font-mono text-white mt-1">
-                    {reviewResult.totalTrades}
+            return (
+              <div className="space-y-6 pt-2">
+                {/* Score & Main Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Discipline Score Gauge */}
+                  <div className="md:col-span-1 bg-[#070a12] border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                    <div className="text-xs font-bold text-slate-400 mb-2">ĐIỂM KỶ LUẬT KÉP</div>
+                    <div
+                      className={`text-4xl font-black font-mono my-1 ${
+                        disciplineScore >= 80
+                          ? "text-emerald-400"
+                          : disciplineScore >= 50
+                          ? "text-amber-400"
+                          : "text-rose-400"
+                      }`}
+                    >
+                      {disciplineScore}
+                      <span className="text-sm text-slate-500 font-normal">/100</span>
+                    </div>
+                    <div className="text-[11px] font-semibold text-slate-400">
+                      {disciplineScore >= 80
+                        ? "🌟 Kỷ Luật Rất Tốt"
+                        : disciplineScore >= 50
+                        ? "⚠️ Cần Cải Thiện"
+                        : "🚨 Cảnh Báo Vi Phạm"}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Thời gian: {reviewResult.periodType}</div>
-                </div>
 
-                <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
-                  <div className="text-[11px] font-semibold text-slate-400">Tỷ Lệ Thắng (Win Rate)</div>
-                  <div className="text-xl font-black font-mono text-emerald-400 mt-1">
-                    {typeof reviewResult.winRate === "number" ? `${reviewResult.winRate.toFixed(1)}%` : String(reviewResult.winRate || "0%")}
+                  {/* Stats Summary Row */}
+                  <div className="md:col-span-3 grid grid-cols-3 gap-3">
+                    <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
+                      <div className="text-[11px] font-semibold text-slate-400">Tổng Số Lệnh Rà Soát</div>
+                      <div className="text-xl font-black font-mono text-white mt-1">
+                        {totalTrades}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">Thời gian: {periodType}</div>
+                    </div>
+
+                    <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
+                      <div className="text-[11px] font-semibold text-slate-400">Tỷ Lệ Thắng (Win Rate)</div>
+                      <div className="text-xl font-black font-mono text-emerald-400 mt-1">
+                        {typeof winRate === "number" ? `${winRate.toFixed(1)}%` : String(winRate || "0%")}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">Win / Loss</div>
+                    </div>
+
+                    <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
+                      <div className="text-[11px] font-semibold text-slate-400">Tổng Lợi Nhuận ($)</div>
+                      <div
+                        className={`text-xl font-black font-mono mt-1 ${
+                          (Number(totalPnl) || 0) >= 0 ? "text-emerald-400" : "text-rose-400"
+                        }`}
+                      >
+                        {(Number(totalPnl) || 0) >= 0 ? "+" : ""}${(Number(totalPnl) || 0).toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">Profit Factor: {String(profitFactor || "0.00")}</div>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Win / Loss</div>
                 </div>
 
-                <div className="bg-[#070a12] border border-slate-800 rounded-2xl p-4 flex flex-col justify-center">
-                  <div className="text-[11px] font-semibold text-slate-400">Tổng Lợi Nhuận ($)</div>
-                  <div
-                    className={`text-xl font-black font-mono mt-1 ${
-                      (Number(reviewResult.totalPnl) || 0) >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
-                    {(Number(reviewResult.totalPnl) || 0) >= 0 ? "+" : ""}${(Number(reviewResult.totalPnl) || 0).toFixed(2)}
+                {/* Checklist Violations Breakdown */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
+                    <div className="text-[11px] text-slate-400 font-semibold">Lệnh Thiếu Stop Loss</div>
+                    <div
+                      className={`text-lg font-black font-mono mt-0.5 ${
+                        missingSlCount > 0 ? "text-rose-400" : "text-emerald-400"
+                      }`}
+                    >
+                      {missingSlCount} Lệnh
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Profit Factor: {String(reviewResult.profitFactor || "0.00")}</div>
-                </div>
-              </div>
-            </div>
 
-            {/* Checklist Violations Breakdown */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
-                <div className="text-[11px] text-slate-400 font-semibold">Lệnh Thiếu Stop Loss</div>
-                <div
-                  className={`text-lg font-black font-mono mt-0.5 ${
-                    reviewResult.checklistAnalysis?.missingSlCount > 0 ? "text-rose-400" : "text-emerald-400"
-                  }`}
-                >
-                  {reviewResult.checklistAnalysis?.missingSlCount || 0} Lệnh
-                </div>
-              </div>
+                  <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
+                    <div className="text-[11px] text-slate-400 font-semibold">Tỷ Lệ R:R &lt; 1:2</div>
+                    <div
+                      className={`text-lg font-black font-mono mt-0.5 ${
+                        badRrCount > 0 ? "text-amber-400" : "text-emerald-400"
+                      }`}
+                    >
+                      {badRrCount} Lệnh
+                    </div>
+                  </div>
 
-              <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
-                <div className="text-[11px] text-slate-400 font-semibold">Tỷ Lệ R:R &lt; 1:2</div>
-                <div
-                  className={`text-lg font-black font-mono mt-0.5 ${
-                    reviewResult.checklistAnalysis?.badRrCount > 0 ? "text-amber-400" : "text-emerald-400"
-                  }`}
-                >
-                  {reviewResult.checklistAnalysis?.badRrCount || 0} Lệnh
-                </div>
-              </div>
+                  <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
+                    <div className="text-[11px] text-slate-400 font-semibold">Ngày Vào Lệnh Quá Mức</div>
+                    <div
+                      className={`text-lg font-black font-mono mt-0.5 ${
+                        overtradingDays > 0 ? "text-rose-400" : "text-emerald-400"
+                      }`}
+                    >
+                      {overtradingDays} Ngày
+                    </div>
+                  </div>
 
-              <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
-                <div className="text-[11px] text-slate-400 font-semibold">Ngày Vào Lệnh Quá Mức</div>
-                <div
-                  className={`text-lg font-black font-mono mt-0.5 ${
-                    reviewResult.checklistAnalysis?.overtradingDays > 0 ? "text-rose-400" : "text-emerald-400"
-                  }`}
-                >
-                  {reviewResult.checklistAnalysis?.overtradingDays || 0} Ngày
+                  <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
+                    <div className="text-[11px] text-slate-400 font-semibold">Dấu Hiệu Trả Thù (Revenge)</div>
+                    <div
+                      className={`text-lg font-black font-mono mt-0.5 ${
+                        revengeTradeCount > 0 ? "text-rose-400" : "text-emerald-400"
+                      }`}
+                    >
+                      {revengeTradeCount} Lần
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="bg-[#070a12] border border-slate-800 p-3.5 rounded-xl">
-                <div className="text-[11px] text-slate-400 font-semibold">Dấu Hiệu Trả Thù (Revenge)</div>
-                <div
-                  className={`text-lg font-black font-mono mt-0.5 ${
-                    reviewResult.checklistAnalysis?.revengeTradeCount > 0 ? "text-rose-400" : "text-emerald-400"
-                  }`}
-                >
-                  {reviewResult.checklistAnalysis?.revengeTradeCount || 0} Lần
-                </div>
-              </div>
-            </div>
+                {/* Summary / AI Coach Commentary */}
+                {summary && (
+                  <div className="bg-[#070a12] border border-purple-500/30 rounded-2xl p-4 sm:p-5 space-y-2">
+                    <div className="text-xs sm:text-sm font-extrabold text-purple-400 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Tổng Quan Nhận Xét Kỷ Luật Từ AI Coach:</span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-line">
+                      {summary}
+                    </div>
+                  </div>
+                )}
 
-            {/* Recommendations Box */}
-            {reviewResult.recommendations && reviewResult.recommendations.length > 0 && (
-              <div className="bg-[#070a12] border border-blue-500/30 rounded-2xl p-4 sm:p-5 space-y-2">
-                <div className="text-xs sm:text-sm font-extrabold text-sky-400 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Khuyến Nghị Khắc Phục Từ Auditor (Chuẩn 12 Chương):</span>
-                </div>
-                <ul className="space-y-1.5 text-xs sm:text-sm text-slate-200">
-                  {reviewResult.recommendations.map((rec, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-sky-400 mt-1">•</span>
-                      <span className="leading-relaxed">{rec}</span>
-                    </li>
-                  ))}
-                </ul>
+                {/* Recommendations Box */}
+                {recommendations && recommendations.length > 0 && (
+                  <div className="bg-[#070a12] border border-blue-500/30 rounded-2xl p-4 sm:p-5 space-y-2">
+                    <div className="text-xs sm:text-sm font-extrabold text-sky-400 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Khuyến Nghị Khắc Phục Từ Auditor (Chuẩn 12 Chương):</span>
+                    </div>
+                    <ul className="space-y-1.5 text-xs sm:text-sm text-slate-200">
+                      {recommendations.map((rec, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-sky-400 mt-1">•</span>
+                          <span className="leading-relaxed">{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ) : (
+            );
+          })() : (
           <div className="text-center py-16 bg-[#070a12] border border-slate-800 rounded-2xl p-6 space-y-3">
             <div className="w-14 h-14 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-sky-400 mx-auto text-2xl">
               🛡️

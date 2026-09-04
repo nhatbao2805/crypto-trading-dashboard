@@ -4,8 +4,8 @@
   "description": "Professional Crypto Trading Dashboard: Theory, Daily Trading Journal with Image Uploads, and AGY Terminal News Impact Filter",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node init && node server.js",
+    "dev": "node init && node --watch server.js"
   },
   "keywords": [
     "crypto",

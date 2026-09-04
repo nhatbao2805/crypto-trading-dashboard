@@ -141,7 +141,29 @@ db.exec(`
     advice TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS daily_market_briefs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    macro_headline TEXT NOT NULL,
+    market_mood TEXT NOT NULL,
+    sentiment_score REAL DEFAULT 0.0,
+    executive_summary TEXT NOT NULL,
+    focus_coins TEXT NOT NULL,
+    actionable_trade_setups TEXT NOT NULL,
+    short_term_holds TEXT,
+    risk_notice TEXT,
+    raw_data TEXT,
+    created_at TEXT NOT NULL
+  );
 `);
+
+// Safe non-destructive column migration
+try {
+  db.exec(`ALTER TABLE daily_market_briefs ADD COLUMN short_term_holds TEXT;`);
+} catch (e) {
+  // Column already exists, safe to ignore
+}
 
 // Ensure default paper account exists
 db.exec(`
