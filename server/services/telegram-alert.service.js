@@ -33,7 +33,6 @@ class TelegramAlertService {
 
   postTelegramMessage(text) {
     if (!this.botToken || !this.chatId) {
-      console.log('[TelegramAlert] Skipped (No Token/ChatID configured):', text.slice(0, 60));
       return Promise.resolve(false);
     }
 
