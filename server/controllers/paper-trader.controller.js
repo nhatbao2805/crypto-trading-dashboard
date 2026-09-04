@@ -22,6 +22,15 @@ class PaperTraderController {
     return res.json({ positions });
   }
 
+  async getLivePositions(req, res) {
+    try {
+      const data = await paperTradingService.getOpenPositionsLiveMetrics();
+      return res.json(data);
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
   openPosition(req, res, body) {
     try {
       const position = paperTradingService.openPosition(body);

@@ -8,12 +8,12 @@ const nlpStrategyService = require('../services/nlp-strategy.service');
 class AiTraderController {
   async runCouncilAnalysis(req, res, body) {
     try {
-      const { coin = 'BTC', clientMarket = null, forceRefresh = false } = body || {};
+      const { coin = 'BTC', clientMarket = null, forceRefresh = false, tradingStyle = 'SCALPING' } = body || {};
       let market = clientMarket;
       if (!market) {
         market = await binanceService.getTicker24h(coin);
       }
-      const debate = await masterCouncil.runDebate(coin, market, forceRefresh);
+      const debate = await masterCouncil.runDebate(coin, market, forceRefresh, tradingStyle);
       return res.json(debate);
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -67,14 +67,46 @@ class AiTraderController {
   getChats(req, res, query) {
     const coin = query.coin || null;
     const limit = query.limit ? parseInt(query.limit, 10) : 50;
-    const chats = debateRepository.getAgyChats(coin, limit);
-    return res.json({ chats });
+    const chats = debateRepository.getChats(coin, limit);
+    return res.json({ success: true, history: chats, chats });
   }
 
   clearChats(req, res, body) {
     const coin = (body && body.coin) || null;
-    debateRepository.clearAgyChats(coin);
+    debateRepository.clearChats(coin);
     return res.json({ success: true, message: 'Chat history cleared' });
+  }
+
+  async executeAutoTrade(req, res, body) {
+    try {
+      const autoTraderService = require('../services/auto-trader.service');
+      const {
+        coin = null,
+        riskPercent = 1.5,
+        minConfidence = 50,
+        forceTrade = false,
+        ttlMinutes = null,
+        maxLossUsd = null,
+        margin = null,
+        leverage = null,
+        tradingStyle = 'SCALPING'
+      } = body || {};
+      const result = await autoTraderService.executeAutonomousTrade({
+        coin,
+        riskPercent,
+        minConfidence,
+        forceTrade,
+        ttlMinutes,
+        maxLossUsd,
+        margin,
+        leverage,
+        tradingStyle
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error('[AiTraderController] Auto trade error:', err.message);
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 
   // --- 24/7 Market Screener Endpoints ---
@@ -126,6 +158,38 @@ class AiTraderController {
         success,
         message: success ? 'Tin nhắn cảnh báo thử nghiệm đã gửi thành công tới Telegram!' : 'Không thể gửi (Vui lòng kiểm tra Token & ChatID).'
       });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // --- Daily Pre-Market Briefing & Post-Market Review Endpoints ---
+  async getDailyBriefing(req, res) {
+    try {
+      const dailyBriefingService = require('../services/daily-briefing.service');
+      const briefing = await dailyBriefingService.getDailyBriefing();
+      return res.json(briefing);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  async getDailyReview(req, res, query) {
+    try {
+      const dailyBriefingService = require('../services/daily-briefing.service');
+      const date = (query && query.date) || null;
+      const review = await dailyBriefingService.getDailyReview(date);
+      return res.json(review);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  async saveDailyReviewToNote(req, res, body) {
+    try {
+      const dailyBriefingService = require('../services/daily-briefing.service');
+      const result = await dailyBriefingService.saveReviewToNote(body || {});
+      return res.json(result);
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }

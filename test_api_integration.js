@@ -198,8 +198,8 @@ async function runDirectRouteTests() {
 
   // 4. AI Trader Multi-Agent
   console.log('\n--- 4. Phân hệ Hội Đồng AI Trader Multi-Agent (/api/ai-trader/*) ---');
-  await check('POST /api/ai-trader/council-analysis -> Họp hội đồng 4 tác tử AI', async () => {
-    const test = mockRequest('/api/ai-trader/council-analysis', 'POST', { coin: 'BTC' });
+  await check('POST /api/ai-trader/council/debate -> Họp hội đồng 4 tác tử AI (Frontend Endpoint)', async () => {
+    const test = mockRequest('/api/ai-trader/council/debate', 'POST', { coin: 'BTC' });
     const result = await test.execute();
     assert.strictEqual(result.handled, true);
     assert.strictEqual(result.statusCode, 200);
@@ -209,6 +209,25 @@ async function runDirectRouteTests() {
     assert.ok(result.data.macro_view);
     assert.ok(result.data.risk_view);
     assert.ok(result.data.validator_view);
+  });
+
+  await check('GET /api/agy/history -> Đọc lịch sử chat AGY Terminal', async () => {
+    const test = mockRequest('/api/agy/history', 'GET');
+    const result = await test.execute();
+    assert.strictEqual(result.handled, true);
+    assert.strictEqual(result.statusCode, 200);
+    assert.strictEqual(result.data.success, true);
+    assert.ok(Array.isArray(result.data.history));
+  });
+
+  await check('POST /api/journal/ai-review -> Sinh bản đánh giá AI Review bất đồng bộ', async () => {
+    const test = mockRequest('/api/journal/ai-review', 'POST', { periodType: 'WEEKLY', coinFilter: 'ALL', save: false });
+    const result = await test.execute();
+    assert.strictEqual(result.handled, true);
+    assert.strictEqual(result.statusCode, 200);
+    assert.strictEqual(result.data.success, true);
+    assert.ok(result.data.review.discipline_score >= 0);
+    assert.ok(result.data.review.commentary);
   });
 
   // 5. Paper Trading
@@ -224,6 +243,10 @@ async function runDirectRouteTests() {
   console.log('\n================================================================');
   console.log(`🎉 TẤT CẢ ${passed}/${total} ROUTE VÀ CONTROLLER ĐỀU HOẠT ĐỘNG HOÀN HẢO 100%!`);
   console.log('================================================================\n');
+  process.exit(0);
 }
 
-runDirectRouteTests().catch(console.error);
+runDirectRouteTests().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

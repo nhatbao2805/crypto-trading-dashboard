@@ -5,6 +5,10 @@ async function handleNewsRoutes(req, res, pathname, method, query, body) {
     return await newsController.getMarketPrice(req, res, query);
   }
 
+  if (pathname === '/api/market/volatility-stream' && method === 'GET') {
+    return newsController.getVolatilityStream(req, res, query);
+  }
+
   if (pathname === '/api/market/prices' && method === 'GET') {
     return await newsController.getAllMarketPrices(req, res);
   }

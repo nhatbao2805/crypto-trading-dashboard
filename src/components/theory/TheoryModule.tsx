@@ -47,7 +47,7 @@ export const TheoryModule: React.FC<TheoryModuleProps> = ({ chapters, onOpenGlos
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-200 bg-slate-900 hover:bg-slate-800 hover:text-white border border-slate-700/80 transition-colors shadow-sm"
         >
           <BookText className="w-3.5 h-3.5 text-sky-400" />
-          <span>Từ Điển Crypto (21 Thuật Ngữ)</span>
+          <span>Từ Điển Crypto & SMC</span>
         </button>
       </div>
 

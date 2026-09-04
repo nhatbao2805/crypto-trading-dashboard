@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Zap, MessageSquare, Newspaper } from "lucide-react";
+import { Zap, Newspaper } from "lucide-react";
 import { NewsSubTab, NewsArticle } from "../../types";
 import { NewsAnalysisTab } from "./NewsAnalysisTab";
-import { AgyChatTab } from "./AgyChatTab";
 import { GlobalFeedTab } from "./GlobalFeedTab";
 import { ArticleDetailModal } from "./ArticleDetailModal";
 
@@ -17,45 +16,32 @@ export const NewsModule: React.FC = () => {
         <div className="flex items-center gap-1.5 bg-[#070a12] p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setSubTab("analyze")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
               subTab === "analyze"
                 ? "bg-blue-600 text-white shadow-sm"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
-            <span>1. Phân Tích Đồng Coin & AGY</span>
-          </button>
-
-          <button
-            onClick={() => setSubTab("chat")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              subTab === "chat"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
-            <span>2. Chat Chiến Lược AGY</span>
+            <span>1. Phân Tích Tin Tức Đồng Coin</span>
           </button>
 
           <button
             onClick={() => setSubTab("feed")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
               subTab === "feed"
                 ? "bg-blue-600 text-white shadow-sm"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
             }`}
           >
             <Newspaper className="w-3.5 h-3.5 text-purple-400" />
-            <span>3. Toàn Cầu Feed</span>
+            <span>2. Dòng Tin Thị Trường Toàn Cầu</span>
           </button>
         </div>
       </div>
 
       {/* SubTab Views */}
       {subTab === "analyze" && <NewsAnalysisTab onSelectArticle={setSelectedArticle} />}
-      {subTab === "chat" && <AgyChatTab />}
       {subTab === "feed" && <GlobalFeedTab onSelectArticle={setSelectedArticle} />}
 
       {/* Article Detail Reader Modal */}

@@ -20,10 +20,12 @@ import {
   List,
   LayoutGrid,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  FileText
 } from "lucide-react";
 import { TradeEntry, TradeStatsSummary, TradeStatus } from "../../types";
-import { formatCoinPrice } from "../../services/binance";
+import { formatCoinPrice, formatMoney } from "../../services/binance";
+import { CouncilDebateModal } from "../aitrader/CouncilDebateModal";
 
 interface TradeJournalTabProps {
   entries: TradeEntry[];
@@ -56,6 +58,24 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [flashStates, setFlashStates] = useState<Record<string, "up" | "down" | null>>({});
+  const [selectedDebateEntry, setSelectedDebateEntry] = useState<TradeEntry | null>(null);
+  const prevPricesRef = React.useRef<Record<string, number>>({});
+
+  React.useEffect(() => {
+    Object.entries(livePrices || {}).forEach(([coin, price]) => {
+      const upper = coin.toUpperCase();
+      const prev = prevPricesRef.current[upper];
+      if (prev !== undefined && prev !== price && price > 0) {
+        const direction = price > prev ? "up" : "down";
+        setFlashStates((f) => ({ ...f, [upper]: direction }));
+        setTimeout(() => {
+          setFlashStates((f) => ({ ...f, [upper]: null }));
+        }, 750);
+      }
+      prevPricesRef.current[upper] = price;
+    });
+  }, [livePrices]);
 
   const handleApplyFilter = (newCoin?: string, newStatus?: string, newStart?: string, newEnd?: string) => {
     const c = newCoin !== undefined ? newCoin : coinFilter;
@@ -80,11 +100,16 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
   };
 
   // Compute live dynamic PnL for individual trade card
+  // Compute live dynamic PnL for individual trade card
   const getTradeLiveMetrics = (entry: TradeEntry) => {
+    const coinUpper = (entry.coin || "BTC").toUpperCase();
+    const livePrice = livePrices[coinUpper] || entry.entry_price || 0;
+
     if (entry.status !== "OPEN") {
       return {
         isLive: false,
         price: entry.exit_price || entry.entry_price,
+        liveMarketPrice: livePrice,
         pnlAmount: entry.pnl_amount || 0,
         pnlPercent: entry.pnl_percent || 0,
         hitSL: false,
@@ -92,20 +117,17 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
       };
     }
 
-    const coinUpper = (entry.coin || "BTC").toUpperCase();
-    const livePrice = livePrices[coinUpper] || entry.entry_price || 0;
     const isShort = entry.type.includes("SHORT") || entry.type.includes("SELL");
+    const leverage = (entry as any).leverage || 5;
 
     let pct = 0;
     let amt = 0;
 
     if (entry.entry_price > 0 && livePrice > 0) {
-      if (isShort) {
-        pct = ((entry.entry_price - livePrice) / entry.entry_price) * 100;
-      } else {
-        pct = ((livePrice - entry.entry_price) / entry.entry_price) * 100;
-      }
-      amt = entry.position_size ? entry.position_size * (pct / 100) : 0;
+      const priceDiff = isShort ? (entry.entry_price - livePrice) : (livePrice - entry.entry_price);
+      pct = (priceDiff / entry.entry_price) * 100 * leverage;
+      const margin = (entry as any).margin || (entry.position_size ? entry.position_size / leverage : 200);
+      amt = margin * (pct / 100);
     }
 
     const hitSL = entry.stop_loss && livePrice > 0
@@ -119,6 +141,7 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
     return {
       isLive: true,
       price: livePrice,
+      liveMarketPrice: livePrice,
       pnlAmount: Number(amt.toFixed(2)),
       pnlPercent: Number(pct.toFixed(2)),
       hitSL,
@@ -388,10 +411,11 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
                 <tr>
                   <th className="py-2.5 px-3">Coin / Chiều</th>
                   <th className="py-2.5 px-3">Trạng Thái</th>
-                  <th className="py-2.5 px-3">Entry / Exit</th>
+                  <th className="py-2.5 px-3">Giá Vào (Entry)</th>
+                  <th className="py-2.5 px-3">Giá Live Hiện Tại</th>
                   <th className="py-2.5 px-3">SL / TP</th>
                   <th className="py-2.5 px-3">Quy Mô ($)</th>
-                  <th className="py-2.5 px-3">PnL ($ / %)</th>
+                  <th className="py-2.5 px-3">PnL Realtime ($ / %)</th>
                   <th className="py-2.5 px-3">Ngày</th>
                   <th className="py-2.5 px-3 text-right">Thao Tác</th>
                 </tr>
@@ -401,6 +425,7 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
                   const metrics = getTradeLiveMetrics(entry);
                   const isLong = entry.type.includes("LONG") || entry.type.includes("BUY");
                   const isOpen = entry.status === "OPEN";
+                  const flash = flashStates[entry.coin.toUpperCase()];
 
                   let imgsArr: string[] = [];
                   if (Array.isArray(entry.images)) imgsArr = entry.images;
@@ -422,6 +447,11 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
                           >
                             {entry.type}
                           </span>
+                          {(entry.notes?.includes("Tự động đồng bộ") || entry.notes?.includes("Hội Đồng AI")) && (
+                            <span className="text-[8px] font-bold px-1 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                              🤖 AI Sync
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -441,45 +471,104 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
                         </span>
                       </td>
 
-                      <td className="py-2.5 px-3 text-slate-300">
-                        <div>${entry.entry_price}</div>
-                        <div className="text-[10px] text-slate-500">
-                          {isOpen ? `Live: $${formatCoinPrice(metrics.price)}` : `Exit: $${entry.exit_price || entry.entry_price}`}
-                        </div>
+                      {/* Giá Vào (Entry) & Giá Exit */}
+                      <td className="py-2.5 px-3 text-slate-200 font-mono font-semibold">
+                        <div>${formatCoinPrice(entry.entry_price)}</div>
+                        {!isOpen && entry.exit_price ? (
+                          <div className="text-[10px] text-slate-500 font-normal">
+                            Exit: ${formatCoinPrice(entry.exit_price)}
+                          </div>
+                        ) : null}
                       </td>
 
+                      {/* Giá Live Hiện Tại (Chỉ chạy Realtime với lệnh OPEN, đóng băng lệnh đã chốt) */}
                       <td className="py-2.5 px-3">
-                        <div className="text-rose-400 text-[11px]">{entry.stop_loss ? `$${entry.stop_loss}` : "-"}</div>
-                        <div className="text-emerald-400 text-[11px]">{entry.take_profit ? `$${entry.take_profit}` : "-"}</div>
+                        {isOpen ? (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`px-2 py-0.5 rounded-lg font-bold font-mono transition-all inline-block ${
+                                flash === "up"
+                                  ? "tick-flash-up text-emerald-300 border border-emerald-500/40 bg-emerald-500/10"
+                                  : flash === "down"
+                                  ? "tick-flash-down text-rose-300 border border-rose-500/40 bg-rose-500/10"
+                                  : "text-sky-400 bg-slate-900/60"
+                              }`}
+                            >
+                              ${formatCoinPrice(metrics.liveMarketPrice)}
+                            </span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Đang theo dõi Realtime" />
+                          </div>
+                        ) : (
+                          <div className="text-slate-400 font-mono text-[11px] font-medium">
+                            Đã chốt: ${formatCoinPrice(entry.exit_price || entry.entry_price)}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="py-2.5 px-3 font-mono">
+                        <div className="text-rose-400 text-[11px] font-semibold">{entry.stop_loss ? `$${formatCoinPrice(entry.stop_loss)}` : "-"}</div>
+                        <div className="text-emerald-400 text-[11px] font-semibold">{entry.take_profit ? `$${formatCoinPrice(entry.take_profit)}` : "-"}</div>
                       </td>
 
                       <td className="py-2.5 px-3 font-mono text-slate-200">
-                        ${entry.position_size || 0}
+                        ${formatMoney(entry.position_size)}
                       </td>
 
-                      <td className="py-2.5 px-3">
-                        <div
-                          className={`font-extrabold ${
-                            (Number(metrics.pnlAmount) || 0) > 0
-                              ? "text-emerald-400"
-                              : (Number(metrics.pnlAmount) || 0) < 0
-                              ? "text-rose-400"
-                              : "text-slate-300"
-                          }`}
-                        >
-                          {(Number(metrics.pnlAmount) || 0) >= 0 ? "+" : ""}${(Number(metrics.pnlAmount) || 0).toFixed(2)}
-                        </div>
-                        <div
-                          className={`text-[10px] ${
-                            (Number(metrics.pnlPercent) || 0) > 0
-                              ? "text-emerald-400"
-                              : (Number(metrics.pnlPercent) || 0) < 0
-                              ? "text-rose-400"
-                              : "text-slate-500"
-                          }`}
-                        >
-                          ({(Number(metrics.pnlPercent) || 0) >= 0 ? "+" : ""}{(Number(metrics.pnlPercent) || 0).toFixed(1)}%)
-                        </div>
+                      {/* PnL ($ / %) - Realtime khi OPEN, Tĩnh hoàn toàn khi đã ĐÓNG */}
+                      <td
+                        className={`py-2.5 px-3 transition-colors ${
+                          isOpen && flash === "up"
+                            ? "tick-flash-up rounded-lg"
+                            : isOpen && flash === "down"
+                            ? "tick-flash-down rounded-lg"
+                            : ""
+                        }`}
+                      >
+                        {isOpen ? (
+                          <>
+                            <div
+                              className={`font-extrabold font-mono transition-all ${
+                                (Number(metrics.pnlAmount) || 0) > 0
+                                  ? "text-emerald-400"
+                                  : (Number(metrics.pnlAmount) || 0) < 0
+                                  ? "text-rose-400"
+                                  : "text-slate-300"
+                              }`}
+                            >
+                              {(Number(metrics.pnlAmount) || 0) >= 0 ? "+" : ""}${(Number(metrics.pnlAmount) || 0).toFixed(2)}
+                            </div>
+                            <div
+                              className={`text-[10px] font-mono flex items-center gap-1 ${
+                                (Number(metrics.pnlPercent) || 0) > 0
+                                  ? "text-emerald-400"
+                                  : (Number(metrics.pnlPercent) || 0) < 0
+                                  ? "text-rose-400"
+                                  : "text-slate-500"
+                              }`}
+                            >
+                              <span>({(Number(metrics.pnlPercent) || 0) >= 0 ? "+" : ""}{(Number(metrics.pnlPercent) || 0).toFixed(2)}%)</span>
+                              <span className="text-[9px] px-1 rounded bg-sky-500/20 text-sky-300 font-bold uppercase animate-pulse">Live</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div
+                              className={`font-extrabold font-mono ${
+                                (Number(entry.pnl_amount) || 0) > 0
+                                  ? "text-emerald-400"
+                                  : (Number(entry.pnl_amount) || 0) < 0
+                                  ? "text-rose-400"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              {(Number(entry.pnl_amount) || 0) >= 0 ? "+" : ""}${(Number(entry.pnl_amount) || 0).toFixed(2)}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                              <span>({(Number(entry.pnl_percent) || 0) >= 0 ? "+" : ""}{(Number(entry.pnl_percent) || 0).toFixed(2)}%)</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400">Đã chốt</span>
+                            </div>
+                          </>
+                        )}
                       </td>
 
                       <td className="py-2.5 px-3 text-[11px] text-slate-400 whitespace-nowrap">
@@ -488,6 +577,17 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
 
                       <td className="py-2.5 px-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* Nút Xem Biên Bản Tranh Luận AI */}
+                          {(entry.notes || (entry as any).debate_payload) && (
+                            <button
+                              onClick={() => setSelectedDebateEntry(entry)}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 flex items-center gap-1 shrink-0"
+                              title="Xem toàn văn biên bản tranh luận 4 Agent của lệnh này"
+                            >
+                              <FileText className="w-3 h-3 text-purple-400" />
+                              <span>Log AI</span>
+                            </button>
+                          )}
                           {imgsArr.length > 0 && (
                             <button
                               onClick={() => onOpenLightbox(imgsArr[0])}
@@ -500,7 +600,7 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
                           {isOpen && (
                             <button
                               onClick={() => entry.id && onCloseLiveTrade(entry.id, metrics.price)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/15 text-sky-400 hover:bg-sky-500/30 border border-sky-500/30"
+                              className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/15 text-sky-400 hover:bg-sky-500/30 border border-sky-500/30 shrink-0"
                               title="Chốt lệnh theo giá live Binance"
                             >
                               Chốt Live
@@ -536,6 +636,7 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
             const metrics = getTradeLiveMetrics(entry);
             const isLong = entry.type.includes("LONG") || entry.type.includes("BUY");
             const isOpen = entry.status === "OPEN";
+            const flash = flashStates[entry.coin.toUpperCase()];
 
             let rulesArr: string[] = [];
             if (Array.isArray(entry.rules_checked)) rulesArr = entry.rules_checked;
@@ -611,7 +712,15 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
                 </div>
 
                 {/* Live PnL Box for OPEN or recorded PnL */}
-                <div className="bg-[#070a12] p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                <div
+                  className={`bg-[#070a12] p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between transition-colors ${
+                    isOpen && flash === "up"
+                      ? "tick-flash-up"
+                      : isOpen && flash === "down"
+                      ? "tick-flash-down"
+                      : ""
+                  }`}
+                >
                   <div>
                     <div className="text-[9px] uppercase font-bold text-slate-400">
                       {isOpen ? "PnL Thời Gian Thực (Binance Live)" : "Kết Quả Lãi / Lỗ Đã Chốt"}
@@ -642,46 +751,74 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
                     </div>
                   </div>
 
-                  {isOpen && (
-                    <div className="flex flex-col items-end gap-1">
-                      {metrics.hitSL && (
-                        <span className="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/30">
-                          ⚠️ ĐÃ CHẠM SL
-                        </span>
+                  <div className="flex flex-col items-end gap-1">
+                    {isOpen && metrics.hitSL && (
+                      <span className="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/30">
+                        ⚠️ ĐÃ CHẠM SL
+                      </span>
+                    )}
+                    {isOpen && metrics.hitTP && (
+                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                        🎯 ĐÃ CHẠM TP
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      {(entry.notes || (entry as any).debate_payload) && (
+                        <button
+                          onClick={() => setSelectedDebateEntry(entry)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold text-purple-300 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 transition-colors"
+                          title="Xem biên bản tranh luận AI"
+                        >
+                          <FileText className="w-3 h-3 text-purple-400" />
+                          <span>Log AI</span>
+                        </button>
                       )}
-                      {metrics.hitTP && (
-                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                          🎯 ĐÃ CHẠM TP
-                        </span>
+                      {isOpen && (
+                        <button
+                          onClick={() => entry.id && onCloseLiveTrade(entry.id, metrics.price)}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 transition-colors"
+                        >
+                          <Zap className="w-3 h-3 text-sky-400" />
+                          <span>Chốt Live ${formatCoinPrice(metrics.price)}</span>
+                        </button>
                       )}
-                      <button
-                        onClick={() => entry.id && onCloseLiveTrade(entry.id, metrics.price)}
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold text-sky-300 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 transition-colors"
-                      >
-                        <Zap className="w-3 h-3 text-sky-400" />
-                        <span>Chốt Live ${formatCoinPrice(metrics.price)}</span>
-                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Price Metrics Breakdown */}
-                <div className="grid grid-cols-4 gap-1.5 text-xs font-mono bg-[#070a12]/50 p-2 rounded-xl border border-slate-800/50">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-mono bg-[#070a12]/50 p-2.5 rounded-xl border border-slate-800/50">
                   <div>
-                    <span className="text-slate-500 text-[9px] block">Entry:</span>
-                    <span className="font-bold text-slate-200">${entry.entry_price}</span>
+                    <span className="text-slate-500 text-[9px] block">Giá Vào (Entry):</span>
+                    <span className="font-bold text-slate-200">${formatCoinPrice(entry.entry_price)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-[9px] block">{isOpen ? "Live Hiện Tại:" : "Giá Chốt Exit:"}</span>
+                    <span
+                      className={`font-bold transition-all px-1.5 py-0.2 rounded inline-block ${
+                        isOpen && flash === "up"
+                          ? "tick-flash-up text-emerald-300"
+                          : isOpen && flash === "down"
+                          ? "tick-flash-down text-rose-300"
+                          : isOpen
+                          ? "text-sky-400"
+                          : "text-slate-400 font-semibold"
+                      }`}
+                    >
+                      ${formatCoinPrice(isOpen ? metrics.liveMarketPrice : (entry.exit_price || entry.entry_price))}
+                    </span>
                   </div>
                   <div>
                     <span className="text-slate-500 text-[9px] block">Stop Loss:</span>
-                    <span className="font-bold text-rose-400">{entry.stop_loss ? `$${entry.stop_loss}` : "Không"}</span>
+                    <span className="font-bold text-rose-400">{entry.stop_loss ? `$${formatCoinPrice(entry.stop_loss)}` : "Không"}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 text-[9px] block">Take Profit:</span>
-                    <span className="font-bold text-emerald-400">{entry.take_profit ? `$${entry.take_profit}` : "Không"}</span>
+                    <span className="font-bold text-emerald-400">{entry.take_profit ? `$${formatCoinPrice(entry.take_profit)}` : "Không"}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[9px] block">Size ($):</span>
-                    <span className="font-bold text-slate-200">${entry.position_size || 0}</span>
+                    <span className="text-slate-500 text-[9px] block">Quy Mô ($):</span>
+                    <span className="font-bold text-slate-200">${formatMoney(entry.position_size)}</span>
                   </div>
                 </div>
 
@@ -729,6 +866,22 @@ export const TradeJournalTab: React.FC<TradeJournalTabProps> = ({
           })}
         </div>
       )}
+
+      {/* COUNCIL DEBATE MODAL */}
+      <CouncilDebateModal
+        isOpen={!!selectedDebateEntry}
+        onClose={() => setSelectedDebateEntry(null)}
+        debate={
+          (selectedDebateEntry as any)?.debate_payload
+            ? typeof (selectedDebateEntry as any).debate_payload === "string"
+              ? JSON.parse((selectedDebateEntry as any).debate_payload)
+              : (selectedDebateEntry as any).debate_payload
+            : null
+        }
+        rawNotes={selectedDebateEntry?.notes}
+        coin={selectedDebateEntry?.coin}
+        tradeType={selectedDebateEntry?.type}
+      />
     </div>
   );
 };

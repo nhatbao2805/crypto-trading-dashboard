@@ -143,12 +143,29 @@ class BinanceService {
 
 export const binanceService = new BinanceService();
 
-export function formatCoinPrice(price: number): string {
-  if (price >= 1000) {
-    return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  } else if (price >= 1) {
-    return price.toFixed(4);
+export function formatCoinPrice(price: number | string | undefined): string {
+  if (price === undefined || price === null || price === "") return "0.00";
+  const num = typeof price === "string" ? parseFloat(price.replace(/,/g, "")) : price;
+  if (isNaN(num)) return "0.00";
+
+  if (num >= 1000) {
+    return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } else if (num >= 10) {
+    return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } else if (num >= 1) {
+    return num.toFixed(4);
+  } else if (num >= 0.05) {
+    return num.toFixed(4);
+  } else if (num >= 0.001) {
+    return num.toFixed(5);
   } else {
-    return price.toFixed(6);
+    return num.toFixed(6);
   }
+}
+
+export function formatMoney(val: number | string | undefined): string {
+  if (val === undefined || val === null || val === "") return "0.00";
+  const num = typeof val === "string" ? parseFloat(val.replace(/,/g, "")) : val;
+  if (isNaN(num)) return "0.00";
+  return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

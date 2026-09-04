@@ -5,8 +5,35 @@ const binanceService = require('../services/binance.service');
 class JournalController {
   getEntries(req, res, query) {
     const entries = journalRepository.getAllEntries(query);
-    const stats = journalRepository.getStats();
-    return res.json({ entries, stats });
+    try {
+      const paperTradeRepository = require('../models/PaperTradeRepository');
+      const openPositions = paperTradeRepository.getOpenPositions(query?.coin || null);
+      const openEntries = (openPositions || []).map(pos => ({
+        id: `live_${pos.id}`,
+        date: pos.date || new Date().toISOString().split('T')[0],
+        coin: pos.coin,
+        type: pos.type,
+        entry_price: pos.entry_price,
+        exit_price: null,
+        stop_loss: pos.stop_loss,
+        take_profit: pos.take_profit,
+        position_size: pos.position_size || (pos.margin * pos.leverage),
+        leverage: pos.leverage,
+        margin: pos.margin,
+        pnl_amount: 0,
+        pnl_percent: 0,
+        status: 'OPEN',
+        notes: pos.notes,
+        is_paper_live: true,
+        paper_trade_id: pos.id,
+        images: [],
+        setup_confluences: [],
+        rules_checked: []
+      }));
+      return res.json({ entries: [...openEntries, ...entries], stats: journalRepository.getStats() });
+    } catch (_) {
+      return res.json({ entries, stats: journalRepository.getStats() });
+    }
   }
 
   getEntryById(req, res, params) {
@@ -97,11 +124,21 @@ class JournalController {
     }
   }
 
-  generateAiReview(req, res, body) {
+  async generateAiReview(req, res, body) {
     try {
-      const { period = 'WEEKLY', periodType = 'WEEKLY', coinFilter = 'ALL' } = body || {};
-      const review = journalAuditService.generateAiCoachReview(periodType || period, coinFilter);
-      return res.json({ success: true, review });
+      const { period = 'WEEKLY', periodType = 'WEEKLY', coinFilter = 'ALL', save = false } = body || {};
+      const review = await journalAuditService.generateAiCoachReview(periodType || period, coinFilter);
+      let savedRecord = null;
+      if (save && review) {
+        savedRecord = journalRepository.saveTradeReview({
+          period_type: review.period_type || periodType || period,
+          coin_filter: coinFilter,
+          total_trades: review.total_trades || 0,
+          discipline_score: review.discipline_score || 0,
+          analysis_data: review
+        });
+      }
+      return res.json({ success: true, review, savedRecord });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }

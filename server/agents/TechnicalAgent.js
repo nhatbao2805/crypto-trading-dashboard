@@ -1,6 +1,7 @@
 const BaseAgent = require('./BaseAgent');
 const llmService = require('../services/llm.service');
 const ragService = require('../services/rag.service');
+const binanceService = require('../services/binance.service');
 
 class TechnicalAgent extends BaseAgent {
   constructor() {
@@ -13,27 +14,28 @@ class TechnicalAgent extends BaseAgent {
   }
 
   async analyze(coin, liveMarket) {
-    const currentPrice = Number(liveMarket.price) || 60000;
-    const high24h = Number(liveMarket.high24h) || currentPrice * 1.02;
-    const low24h = Number(liveMarket.low24h) || currentPrice * 0.98;
-    const change24h = Number(liveMarket.change24h) || 0;
+    const tech = await binanceService.getTechnicalAnalysis(coin);
+    const currentPrice = Number(liveMarket?.price || tech.currentPrice) || 60000;
+    const high24h = Number(liveMarket?.high24h) || currentPrice * 1.02;
+    const low24h = Number(liveMarket?.low24h) || currentPrice * 0.98;
+    const change24h = Number(liveMarket?.change24h || tech.change24h) || 0;
 
-    const range = Math.max(1, high24h - low24h);
-    const posInRange = Math.max(0, Math.min(1, (currentPrice - low24h) / range));
-    const estimatedRsi = Math.round(30 + posInRange * 40 + Math.min(10, Math.max(-10, change24h * 2)));
-
-    const s1 = (low24h * 0.998).toFixed(2);
-    const s2 = (low24h * 0.985).toFixed(2);
-    const r1 = (high24h * 1.002).toFixed(2);
-    const r2 = (high24h * 1.015).toFixed(2);
+    const realRsi = tech.rsi14;
+    const estimatedRsi = realRsi;
+    const s1 = tech.swingLow.toFixed(2);
+    const s2 = (tech.swingLow * 0.985).toFixed(2);
+    const r1 = tech.swingHigh.toFixed(2);
+    const r2 = (tech.swingHigh * 1.015).toFixed(2);
 
     let signal = 'NEUTRAL';
-    if (estimatedRsi < 42 && change24h >= -4) {
-      signal = 'BULLISH_REBOUND';
-    } else if (estimatedRsi > 65) {
+    if (realRsi < 35 && change24h >= -4) {
+      signal = 'BULLISH_OVERSOLD_REBOUND';
+    } else if (realRsi > 70) {
       signal = 'BEARISH_OVERBOUGHT';
-    } else if (change24h > 1.5) {
-      signal = 'BULLISH_TREND';
+    } else if (tech.trend === 'STRONG_UPTREND' || change24h > 2.0) {
+      signal = 'BULLISH_MOMENTUM';
+    } else if (tech.trend === 'STRONG_DOWNTREND' || change24h < -2.5) {
+      signal = 'BEARISH_BREAKDOWN';
     } else {
       signal = 'SIDEWAY_CONSOLIDATION';
     }
@@ -63,7 +65,10 @@ Trả về định dạng JSON: { "summary": "...", "entry_trigger": "..." }`;
       const aiRes = await llmService.generateCompletion({
         systemPrompt: 'Bạn là Agent Alpha (Kỹ Thuật). Luôn trả về JSON hợp lệ.',
         userPrompt: prompt,
-        jsonMode: true
+        jsonMode: true,
+        modelTier: 'standard',
+        maxTokens: 600,
+        temperature: 0.2
       });
 
       const parsed = JSON.parse(aiRes);

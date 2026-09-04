@@ -60,7 +60,16 @@ export const TheoryReader: React.FC<TheoryReaderProps> = ({ chapters, onOpenGlos
       if (!type) return;
 
       let html = "";
-      if (type === "blockchain-ledger") html = ChartVisualizer.renderBlockchainLedgerSvg();
+      if (type === "top-down-strategy") html = ChartVisualizer.renderTopDownStrategyHtml();
+      else if (type === "coin-taxonomy") html = ChartVisualizer.renderCoinTaxonomyHtml();
+      else if (type === "macro-factors") html = ChartVisualizer.renderMacroFactorsHtml();
+      else if (type === "cio-decision-flow") html = ChartVisualizer.renderCioDecisionFrameworkHtml();
+      else if (type === "trader-roadmap") html = ChartVisualizer.renderTraderRoadmapHtml();
+      else if (type === "universal-mermaid") {
+        const code = decodeURIComponent(el.getAttribute("data-code") || "");
+        html = ChartVisualizer.renderUniversalMermaidFlowHtml(code);
+      }
+      else if (type === "blockchain-ledger") html = ChartVisualizer.renderBlockchainLedgerSvg();
       else if (type === "candle-anatomy") html = ChartVisualizer.renderCandleAnatomySvg();
       else if (type === "three-candle-cases") html = ChartVisualizer.renderThreeCandleCasesSvg();
       else if (type === "doji-types") html = ChartVisualizer.renderDojiTypesSvg();
@@ -140,6 +149,48 @@ export const TheoryReader: React.FC<TheoryReaderProps> = ({ chapters, onOpenGlos
       .replace(/\\%/g, "%")
       .replace(/\\\$/g, "$");
 
+    // Replace ALL Mermaid diagrams with rich visual mounts
+    rawContent = rawContent.replace(/```mermaid[\s\S]*?(?:KHUNG 4H|Top-Down|BƯỚC 1: KHUNG 4H|BẢN ĐỒ CHIẾN LƯỢC)[\s\S]*?```/gi, "\n\n<div class=\"visual-mount-box\" data-visual=\"top-down-strategy\"></div>\n\n");
+    rawContent = rawContent.replace(/```mermaid[\s\S]*?(?:CÁC YẾU TỐ VĨ MÔ|LÃI SUẤT FED|CHỈ SỐ ĐỒNG ĐÔ LA)[\s\S]*?```/gi, "\n\n<div class=\"visual-mount-box\" data-visual=\"macro-factors\"></div>\n\n");
+    rawContent = rawContent.replace(/```mermaid[\s\S]*?(?:THỊ TRƯỜNG TIỀN ĐIỆN TỬ|Layer 1 \(Nền tảng chuỗi\))[\s\S]*?```/gi, "\n\n<div class=\"visual-mount-box\" data-visual=\"coin-taxonomy\"></div>\n\n");
+    rawContent = rawContent.replace(/```mermaid[\s\S]*?(?:CHU KỲ.*DÒNG TIỀN|Vốn ngoại đổ vào BTC đầu tiên)[\s\S]*?```/gi, "\n\n<div class=\"visual-mount-box\" data-visual=\"capital-flow-cycle\"></div>\n\n");
+    rawContent = rawContent.replace(/```mermaid[\s\S]*?(?:Giám Đốc Đầu Tư|Ban Cố Vấn AI|PHỦ QUYẾT)[\s\S]*?```/gi, "\n\n<div class=\"visual-mount-box\" data-visual=\"cio-decision-flow\"></div>\n\n");
+    rawContent = rawContent.replace(/```mermaid[\s\S]*?(?:LỘ TRÌNH 5 BƯỚC|Xây Dựng Nền Tảng Bảo Mật)[\s\S]*?```/gi, "\n\n<div class=\"visual-mount-box\" data-visual=\"trader-roadmap\"></div>\n\n");
+    rawContent = rawContent.replace(/```mermaid[\s\S]*?(?:Giao dịch mới phát sinh|Giao dịch gom vào)[\s\S]*?```/gi, "\n\n<div class=\"visual-mount-box\" data-visual=\"blockchain-ledger\"></div>\n\n");
+
+    // Generic fallback for any other remaining mermaid diagrams
+    rawContent = rawContent.replace(/```mermaid([\s\S]*?)```/gi, (_, code) => {
+      const encoded = encodeURIComponent(code.trim());
+      return `\n\n<div class="visual-mount-box" data-visual="universal-mermaid" data-code="${encoded}"></div>\n\n`;
+    });
+
+    // Format GitHub-style Alerts [!IMPORTANT], [!NOTE], [!TIP], [!WARNING], [!CAUTION]
+    rawContent = rawContent.replace(
+      />\s*\[!(IMPORTANT|NOTE|TIP|WARNING|CAUTION)\]\s*\n((?:>.*\n?)+)/gi,
+      (_, type, content) => {
+        const clean = content.replace(/^>\s?/gm, '').trim();
+        const t = type.toUpperCase();
+        let icon = 'ℹ️';
+        let title = 'THÔNG TIN';
+        let cls = 'callout-note';
+        if (t === 'IMPORTANT') { icon = '⚡'; title = 'LƯU Ý QUAN TRỌNG'; cls = 'callout-important'; }
+        else if (t === 'WARNING') { icon = '⚠️'; title = 'CẢNH BÁO RỦI RO'; cls = 'callout-warning'; }
+        else if (t === 'TIP') { icon = '💡'; title = 'MẸO THỰC CHIẾN'; cls = 'callout-tip'; }
+        else if (t === 'CAUTION') { icon = '🛑'; title = 'LƯU Ý SỐNG CÒN'; cls = 'callout-caution'; }
+
+        return `\n\n<div class="theory-callout ${cls}"><div class="callout-header"><span class="callout-icon">${icon}</span><span class="callout-title">${title}</span></div><div class="callout-body">${clean}</div></div>\n\n`;
+      }
+    );
+
+    // Format Diamond rule callout
+    rawContent = rawContent.replace(
+      />\s*💎\s*\*\*KIM CHỈ NAM NẰM LÒNG:\*\*([\s\S]*?)(?=\n\n|$)/gi,
+      (_, body) => {
+        const clean = body.replace(/^>\s?/gm, '').trim();
+        return `\n\n<div class="theory-callout callout-diamond"><div class="callout-header"><span class="callout-icon">💎</span><span class="callout-title">KIM CHỈ NAM NẰM LÒNG CHO CIO</span></div><div class="callout-body font-semibold text-amber-200">${clean}</div></div>\n\n`;
+      }
+    );
+
     // Replace ASCII blocks with Mount Boxes
     rawContent = rawContent.replace(/```[\s\S]*?BLOCK #101[\s\S]*?```/g, "\n\n<div class=\"visual-mount-box\" data-visual=\"blockchain-ledger\"></div>\n\n");
     rawContent = rawContent.replace(/```[\s\S]*?VÍ NÓNG[\s\S]*?VÍ LẠNH[\s\S]*?```/g, "\n\n<div class=\"visual-mount-box\" data-visual=\"hot-cold-wallet\"></div>\n\n");
@@ -158,7 +209,15 @@ export const TheoryReader: React.FC<TheoryReaderProps> = ({ chapters, onOpenGlos
     rawContent = rawContent.replace(/```[\s\S]*?50% TÂM LÝ[\s\S]*?30% QUẢN LÝ VỐN[\s\S]*?20% PHÂN TÍCH KỸ THUẬT[\s\S]*?```/g, "\n\n<div class=\"visual-mount-box\" data-visual=\"success-triangle\"></div>\n\n");
     rawContent = rawContent.replace(/```[\s\S]*?Mục tiêu Chốt Lời[\s\S]*?TỶ LỆ R:R = 1:2[\s\S]*?```/g, "\n\n<div class=\"visual-mount-box\" data-visual=\"risk-reward-diagram\"></div>\n\n");
 
-    return marked.parse(rawContent, { gfm: true, breaks: true }) as string;
+    let html = marked.parse(rawContent, { gfm: true, breaks: true }) as string;
+
+    // Wrap tables in responsive card containers
+    html = html.replace(/<table>([\s\S]*?)<\/table>/gi, '<div class="theory-table-wrapper"><table>$1</table></div>');
+
+    // Style correct answer badges in quizzes
+    html = html.replace(/\*\(Đáp án đúng\)\*/gi, '<span class="quiz-correct-badge">✓ ĐÁP ÁN ĐÚNG</span>');
+
+    return html;
   };
 
   const presets = ChartVisualizer.getPresetPatterns();

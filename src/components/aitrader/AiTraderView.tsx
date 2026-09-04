@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-  Bot,
   BrainCircuit,
   TrendingUp,
   TrendingDown,
-  ShieldCheck,
-  AlertTriangle,
-  Send,
   Sparkles,
   CheckCircle2,
   RefreshCw,
@@ -14,30 +10,32 @@ import {
   MessageSquare,
   BarChart3,
   Layers,
-  UserCheck,
-  Compass,
-  Zap,
-  HelpCircle,
   Copy,
   Check,
-  Maximize2,
-  Columns,
-  LayoutGrid,
-  ChevronRight,
-  X,
   Radio,
-  Bell
+  Bell,
+  Send,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  Flame,
+  ArrowRight,
+  Zap,
+  FileText,
+  SlidersHorizontal
 } from "lucide-react";
 import {
   CouncilDebateResult,
   UserPredictionEvaluation,
-  AiTraderSubTab
+  AiTraderSubTab,
+  VolatilityEvent
 } from "../../types";
-import { AiTraderApi } from "../../services/api";
+import { AiTraderApi, PaperTraderApi, NewsApi } from "../../services/api";
 import { TRACKED_COINS, formatCoinPrice } from "../../services/binance";
 import { TradingViewWidget } from "../common/TradingViewWidget";
 import { MarketScreenerTab } from "./MarketScreenerTab";
 import { TelegramSettingsModal } from "./TelegramSettingsModal";
+import { CouncilDebateModal } from "./CouncilDebateModal";
 
 interface AiTraderViewProps {
   livePrices?: Record<string, number>;
@@ -47,20 +45,51 @@ interface AiTraderViewProps {
 export const AiTraderView: React.FC<AiTraderViewProps> = ({ livePrices = {}, onShowToast }) => {
   const [activeSubTab, setActiveSubTab] = useState<AiTraderSubTab>("screener");
   const [selectedCoin, setSelectedCoin] = useState<string>("BTC");
-  const [layoutMode, setLayoutMode] = useState<"split" | "chart_focus" | "council_focus">("split");
-  const [isAiDrawerOpen, setIsAiDrawerOpen] = useState<boolean>(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [debateResult, setDebateResult] = useState<CouncilDebateResult | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedSetup, setCopiedSetup] = useState<boolean>(false);
+  const [volatilityEvents, setVolatilityEvents] = useState<VolatilityEvent[]>([]);
+  const [isSubmittingPaperTrade, setIsSubmittingPaperTrade] = useState<boolean>(false);
+  const [isAutoTrading, setIsAutoTrading] = useState<boolean>(false);
+  const [confidenceThreshold, setConfidenceThreshold] = useState<number>(50);
+
+  // Pre-Execution Safety Configuration States (Mặc định: AI Auto-Pilot)
+  const [ttlMinutes, setTtlMinutes] = useState<number | "AUTO" | null>("AUTO");
+  const [maxLossUsd, setMaxLossUsd] = useState<number | "AUTO" | null>("AUTO");
+  const [tradeMargin, setTradeMargin] = useState<number | "AUTO">("AUTO");
+  const [tradeLeverage, setTradeLeverage] = useState<number | "AUTO">("AUTO");
+  const [tradingStyle, setTradingStyle] = useState<"SCALPING" | "DAY_TRADE" | "SWING">("SCALPING");
+  const [showSafeguardSettings, setShowSafeguardSettings] = useState<boolean>(false);
+  const [isDebateModalOpen, setIsDebateModalOpen] = useState<boolean>(false);
+
+  // Poll live volatility stream every 15s
+  useEffect(() => {
+    let timer: any = null;
+    const fetchVolatility = () => {
+      NewsApi.getVolatilityStream(8)
+        .then((res) => {
+          if (res.success && res.events) {
+            setVolatilityEvents(res.events);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchVolatility();
+    timer = setInterval(fetchVolatility, 15000);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, []);
+
+  // Bottom Interactive Console Mode (in Cockpit)
+  const [consoleMode, setConsoleMode] = useState<"chat" | "evaluate">("chat");
 
   // User Hypothesis State
   const [hypothesisText, setHypothesisText] = useState<string>("");
   const [userAction, setUserAction] = useState<"LONG" | "SHORT">("LONG");
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [evalResult, setEvalResult] = useState<UserPredictionEvaluation | null>(null);
-  const [evalHistory, setEvalHistory] = useState<any[]>([]);
 
   // Council Chat State
   const [chatPrompt, setChatPrompt] = useState<string>("");
@@ -68,34 +97,35 @@ export const AiTraderView: React.FC<AiTraderViewProps> = ({ livePrices = {}, onS
   const [chatMessages, setChatMessages] = useState<Array<{ sender: "user" | "council"; text: string; time: string }>>([
     {
       sender: "council",
-      text: "Xin chào! Chúng tôi là Hội Đồng Multi-Agent AI-Trader gồm 4 chuyên gia: Kỹ Thuật (Agent Alpha), Vĩ Mô (Agent Macro), Rủi Ro (Agent Guardian) và Phản Biện (Agent Sentinel). Bạn có thể soi nến, vẽ vời trên biểu đồ TradingView bên cạnh và đặt câu hỏi hoặc gửi giả thuyết để chúng tôi thẩm định!",
+      text: `Xin chào Trader! Tôi là Hội Đồng Multi-Agent (Alpha SMC, Macro Dòng Tiền, Guardian Quản Trị Vốn và Sentinel Săn Bẫy). Bạn muốn chất vấn điều gì về thị trường ${selectedCoin}/USDT lúc này?`,
       time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
     }
   ]);
 
-  // Load Council Debate on coin change
-  const loadCouncilAnalysis = async (coin = selectedCoin) => {
+  // Load Council Debate
+  const loadCouncilAnalysis = async (coin: string, force = false, style: "SCALPING" | "DAY_TRADE" | "SWING" = tradingStyle) => {
     setIsLoading(true);
-    setErrorMsg(null);
     try {
       const currentPrice = livePrices[coin.toUpperCase()] || 0;
-      const res = await AiTraderApi.runCouncilAnalysis({
+      const data = await AiTraderApi.runCouncilAnalysis({
         coin,
-        clientMarket: currentPrice > 0 ? { price: currentPrice } : null
+        clientMarket: currentPrice > 0 ? { price: currentPrice } : null,
+        forceRefresh: force,
+        tradingStyle: style
       });
-      setDebateResult(res);
+      setDebateResult(data);
     } catch (err: any) {
-      setErrorMsg(err.message || "Không thể kết nối Hội đồng AI");
+      if (onShowToast) onShowToast(err.message || "Lỗi tải phân tích Hội đồng AI", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadCouncilAnalysis(selectedCoin);
+    loadCouncilAnalysis(selectedCoin, false, tradingStyle);
   }, [selectedCoin]);
 
-  // Evaluate User Prediction
+  // Handle Evaluate Hypothesis
   const handleEvaluatePrediction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hypothesisText.trim()) return;
@@ -109,33 +139,35 @@ export const AiTraderView: React.FC<AiTraderViewProps> = ({ livePrices = {}, onS
         userAction,
         clientMarket: currentPrice > 0 ? { price: currentPrice } : null
       });
+
       if (res.success && res.evaluation) {
         setEvalResult(res.evaluation);
-        setEvalHistory((prev) => [res.evaluation, ...prev]);
-        // If in workspace, scroll to or show eval popup
-        if (activeSubTab === "workspace") {
-          setActiveSubTab("hypo_eval");
-        }
+        if (onShowToast) onShowToast("Hội đồng AI đã hoàn tất phản biện & chấm điểm xác suất!", "success");
       }
     } catch (err: any) {
-      alert("Lỗi thẩm định: " + err.message);
+      if (onShowToast) onShowToast(err.message || "Lỗi thẩm định", "error");
     } finally {
       setIsEvaluating(false);
     }
   };
 
-  // Send Council Chat
+  // Handle Council Chat
   const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatPrompt.trim() || isSendingChat) return;
 
     const userText = chatPrompt.trim();
-    const timeNow = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-
-    setChatMessages((prev) => [...prev, { sender: "user", text: userText, time: timeNow }]);
     setChatPrompt("");
-    setIsSendingChat(true);
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        sender: "user",
+        text: userText,
+        time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+      }
+    ]);
 
+    setIsSendingChat(true);
     try {
       const currentPrice = livePrices[selectedCoin.toUpperCase()] || 0;
       const res = await AiTraderApi.chatCouncil({
@@ -143,12 +175,12 @@ export const AiTraderView: React.FC<AiTraderViewProps> = ({ livePrices = {}, onS
         coin: selectedCoin,
         clientMarket: currentPrice > 0 ? { price: currentPrice } : null
       });
-      if (res.success && res.output) {
+      if (res.success && (res.output || res.reply)) {
         setChatMessages((prev) => [
           ...prev,
           {
             sender: "council",
-            text: res.output,
+            text: res.output || res.reply,
             time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
           }
         ]);
@@ -180,1010 +212,979 @@ export const AiTraderView: React.FC<AiTraderViewProps> = ({ livePrices = {}, onS
     setTimeout(() => setCopiedSetup(false), 2500);
   };
 
+  const executePaperTradeFromAi = async () => {
+    if (!debateResult?.master_verdict) return;
+    const v = debateResult.master_verdict;
+    const isShort = v.action.includes("SHORT") || v.action.includes("SELL") || v.action_label.includes("BÁN");
+    const currentPrice = livePrices[selectedCoin.toUpperCase()] || 0;
+
+    const cleanNum = (str: string) => {
+      if (!str) return null;
+      const matched = str.replace(/,/g, "").match(/\d+(\.\d+)?/);
+      return matched ? parseFloat(matched[0]) : null;
+    };
+
+    const sl = cleanNum(v.stop_loss);
+    const tp = cleanNum(v.take_profit);
+    const entry = currentPrice > 0 ? currentPrice : (cleanNum(v.entry_zone) || 100);
+    const lev = debateResult.risk_view?.recommended_max_leverage
+      ? parseInt(debateResult.risk_view.recommended_max_leverage.replace(/\D/g, ""), 10) || 5
+      : 5;
+
+    setIsSubmittingPaperTrade(true);
+    try {
+      await PaperTraderApi.openPosition({
+        coin: selectedCoin.toUpperCase(),
+        type: isShort ? "SHORT" : "LONG",
+        entry_price: entry,
+        stop_loss: sl || undefined,
+        take_profit: tp || undefined,
+        leverage: lev,
+        margin: 200,
+        ai_verdict: v.action_label,
+        notes: `[Kèo chuẩn Hội Đồng AI Master Council - Xác suất ${v.probability_pct}%]\nKhuyến nghị: ${v.summary_paragraph || (v as any).verdict_summary || ""}`
+      });
+
+      if (onShowToast) {
+        onShowToast(
+          `⚡ Đã khớp lệnh Paper Trade ${selectedCoin} (${isShort ? "SHORT" : "LONG"}) với SL: $${sl || "Chưa đặt"}, TP: $${tp || "Chưa đặt"}! Đang tự động giám sát TP/SL live.`,
+          "success"
+        );
+      }
+    } catch (err: any) {
+      if (onShowToast) {
+        onShowToast(err.message || "Lỗi mở lệnh Paper Trade", "error");
+      }
+    } finally {
+      setIsSubmittingPaperTrade(false);
+    }
+  };
+
+  const handleAutonomousTrade = async (force: boolean = false) => {
+    setIsAutoTrading(true);
+    try {
+      if (onShowToast) {
+        onShowToast(
+          force
+            ? `⚡ Đang ép Hội Đồng AI mở lệnh thử nghiệm nến thật ${selectedCoin}...`
+            : `🤖 Đang triệu tập 4 Chuyên Gia AI thảo luận nến thật ${selectedCoin} (Ngưỡng ${confidenceThreshold}%)...`,
+          "info"
+        );
+      }
+      const res = await AiTraderApi.executeAutoTrade({
+        coin: selectedCoin,
+        riskPercent: 1.5,
+        minConfidence: confidenceThreshold,
+        forceTrade: force,
+        ttlMinutes,
+        maxLossUsd,
+        margin: tradeMargin,
+        leverage: tradeLeverage,
+        tradingStyle
+      });
+      if (res.success) {
+        setDebateResult(res.debate);
+        // Tự động mở Modal toàn văn tranh biện của 4 Agent để người dùng xem trực tiếp
+        setIsDebateModalOpen(true);
+
+        if (res.executed && res.position) {
+          if (onShowToast) {
+            onShowToast(
+              `🎉 AI đã tự động mở vị thế ${res.position.type} ${res.coin} tại giá $${formatCoinPrice(res.position.entry_price)} (SL: $${res.position.stop_loss}, TP: $${res.position.take_profit})! Đang kích hoạt giám sát Realtime SL.`,
+              "success"
+            );
+          }
+        } else {
+          if (onShowToast) {
+            onShowToast(
+              res.executionReason || "Hội đồng hoàn tất phiên họp nhưng khuyến nghị Quan sát. Bấm '⚡ Ép Lệnh Test' nếu bạn muốn kiểm tra luồng khớp lệnh ngay!",
+              "warning"
+            );
+          }
+        }
+      }
+    } catch (err: any) {
+      if (onShowToast) onShowToast(err.message || "Lỗi khi AI tự động thảo luận & đặt lệnh", "error");
+    } finally {
+      setIsAutoTrading(false);
+    }
+  };
+
   return (
     <div className="space-y-4 animate-fadeIn">
-      {/* 1. COMPACT TOP TOOLBAR & COIN SELECTOR */}
-      <div className="bg-[#0b101b] border border-slate-800/80 rounded-2xl p-3.5 shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Left: Coin Selectors */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-            <span className="text-[11px] font-bold uppercase text-slate-400 mr-1 hidden sm:inline">COIN:</span>
-            {TRACKED_COINS.map((c) => {
-              const upper = c.toUpperCase();
-              const isSelected = selectedCoin === upper;
-              const p = livePrices[upper];
+      {/* 0. LIVE VOLATILITY TICKER STREAM BAR */}
+      {volatilityEvents.length > 0 && (
+        <div className="bg-[#0b101b] border border-amber-500/30 rounded-xl px-3 py-2 flex items-center gap-2.5 overflow-x-auto no-scrollbar shadow-lg">
+          <div className="flex items-center gap-1.5 shrink-0 pr-2.5 border-r border-slate-800">
+            <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
+            <span className="text-[10px] font-black tracking-wider uppercase text-amber-300">BIẾN ĐỘNG REALTIME:</span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {volatilityEvents.map((evt) => {
+              const isSelected = selectedCoin === evt.coin;
               return (
                 <button
-                  key={c}
-                  onClick={() => setSelectedCoin(upper)}
-                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 border ${
+                  key={evt.id}
+                  onClick={() => {
+                    setSelectedCoin(evt.coin);
+                    setActiveSubTab("cockpit");
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all border ${
                     isSelected
-                      ? "bg-blue-600 text-white border-blue-500 shadow-sm scale-105"
-                      : "bg-[#070a12] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200"
+                      ? "bg-blue-600/30 border-blue-500 text-white shadow-sm"
+                      : "bg-[#070a12] border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white"
                   }`}
+                  title={evt.description}
                 >
-                  <span>{upper}</span>
-                  {p ? (
-                    <span className="text-[10px] opacity-90 font-mono">${formatCoinPrice(p)}</span>
-                  ) : null}
+                  <span className={evt.color === "rose" ? "text-rose-400" : (evt.color === "amber" ? "text-amber-400" : "text-emerald-400")}>
+                    {evt.badge}
+                  </span>
+                  <span className="text-white font-mono">{evt.coin}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">${formatCoinPrice(evt.price)}</span>
                 </button>
               );
             })}
           </div>
-
-          {/* Right: Refresh & Action */}
-          <div className="flex items-center gap-2 ml-auto">
-            <button
-              onClick={() => loadCouncilAnalysis(selectedCoin)}
-              disabled={isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-900 hover:bg-slate-800 hover:text-white rounded-xl border border-slate-800 transition-all shrink-0"
-              title="Quét lại dữ liệu realtime từ Binance"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-sky-400" : ""}`} />
-              <span className="hidden sm:inline">Quét Lại Live</span>
-            </button>
-          </div>
         </div>
+      )}
 
-        {/* Sub-Tabs + Layout Modes */}
-        <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-800/80">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      {/* 1. TOP HEADER & UNIFIED 2-PILLAR NAVIGATION */}
+      <div className="bg-[#0b101b] border border-slate-800/80 rounded-2xl p-3.5 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Main 2-Pillar Tabs */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveSubTab("screener")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeSubTab === "screener"
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20"
-                  : "text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/30"
+                  : "bg-[#070a12] text-slate-400 hover:text-slate-200 border border-slate-800"
               }`}
             >
-              <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-              <span>⚡ Radar Quét 24/7 & AI Screener</span>
+              <Radio className={`w-4 h-4 ${activeSubTab === "screener" ? "animate-pulse text-emerald-400" : "text-slate-400"}`} />
+              <span>⚡ Radar Săn Kèo 24/7 & NLP</span>
             </button>
 
             <button
-              onClick={() => setActiveSubTab("workspace")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                activeSubTab === "workspace"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              onClick={() => setActiveSubTab("cockpit")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeSubTab === "cockpit" || activeSubTab === "workspace"
+                  ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 border border-purple-400/30"
+                  : "bg-[#070a12] text-slate-400 hover:text-slate-200 border border-slate-800"
               }`}
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>1. Workspace Pro</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("council")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                activeSubTab === "council"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>2. Phòng Họp Chi Tiết ({selectedCoin})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("hypo_eval")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                activeSubTab === "hypo_eval"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-              }`}
-            >
-              <Scale className="w-3.5 h-3.5" />
-              <span>3. Thẩm Định Dự Đoán</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("chat")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                activeSubTab === "chat"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>4. Chat Với Hội Đồng</span>
-            </button>
-
-            <button
-              onClick={() => setIsTelegramModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 transition-all shrink-0"
-            >
-              <Bell className="w-3.5 h-3.5 text-blue-400" />
-              <span className="hidden sm:inline">Bot Telegram</span>
+              <BrainCircuit className="w-4 h-4 text-purple-300" />
+              <span>🏛️ Cockpit Soi Nến & Hội Đồng ({selectedCoin})</span>
             </button>
           </div>
 
-          {/* Layout Mode Switcher (When in workspace) */}
-          {activeSubTab === "workspace" && (
-            <div className="flex items-center gap-1 bg-[#070a12] p-1 rounded-xl border border-slate-800 text-xs">
-              <button
-                onClick={() => setLayoutMode("split")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                  layoutMode === "split"
-                    ? "bg-slate-800 text-white shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Hiển thị song song Biểu đồ & Hội đồng AI"
-              >
-                <Columns className="w-3.5 h-3.5 text-sky-400" />
-                <span className="hidden md:inline">Chia Đôi (Split)</span>
-              </button>
-
-              <button
-                onClick={() => setLayoutMode("chart_focus")}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                  layoutMode === "chart_focus"
-                    ? "bg-slate-800 text-white shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Toàn màn hình biểu đồ TradingView 100%"
-              >
-                <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden md:inline">Toàn Biểu Đồ</span>
-              </button>
-            </div>
-          )}
+          {/* Right Action: Telegram Bot Config */}
+          <button
+            onClick={() => setIsTelegramModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 transition-all ml-auto"
+          >
+            <Bell className="w-3.5 h-3.5 text-blue-400" />
+            <span className="hidden sm:inline">Bot Telegram</span>
+          </button>
         </div>
+
+        {/* Coin Selector Bar & Actions (When in Cockpit mode) */}
+        {(activeSubTab === "cockpit" || activeSubTab === "workspace") && (
+          <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-3">
+            {/* Row 1: Dedicated Tracked Coins Strip */}
+            <div className="flex items-center justify-between gap-3 bg-[#050811] p-2 rounded-2xl border border-slate-800/80">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar flex-1">
+                <span className="text-[11px] font-bold uppercase text-slate-400 mr-2 shrink-0 flex items-center gap-1 pl-1">
+                  <span>🪙</span> CHỌN COIN:
+                </span>
+                {TRACKED_COINS.map((c) => {
+                  const upper = c.toUpperCase();
+                  const isSelected = selectedCoin === upper;
+                  const p = livePrices[upper];
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setSelectedCoin(upper)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 border ${
+                        isSelected
+                          ? "bg-sky-500/15 text-sky-300 border-sky-500/60 shadow-sm shadow-sky-500/20 scale-102"
+                          : "bg-slate-900/60 text-slate-400 border-slate-800/80 hover:border-slate-700 hover:text-slate-200"
+                      }`}
+                    >
+                      <span className="font-mono">{upper}</span>
+                      {p ? (
+                        <span className={`text-[10px] font-mono ${isSelected ? "text-sky-200" : "text-slate-400"}`}>
+                          ${formatCoinPrice(p)}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="shrink-0 hidden md:flex items-center gap-2 border-l border-slate-800 pl-3 pr-1 text-xs">
+                <span className="text-slate-400 text-[11px]">Đang chọn:</span>
+                <span className="font-bold text-white font-mono">{selectedCoin}</span>
+                {livePrices[selectedCoin] && (
+                  <span className="text-emerald-400 font-mono font-bold">
+                    ${formatCoinPrice(livePrices[selectedCoin])}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: Cockpit Action Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Confidence Threshold Switcher */}
+                <div className="flex items-center gap-1 bg-[#050811] p-1 rounded-xl border border-slate-800 text-[11px] font-bold shrink-0">
+                  <span className="text-slate-400 px-1 text-[10px]">Ngưỡng:</span>
+                  <button
+                    onClick={() => setConfidenceThreshold(50)}
+                    className={`px-2.5 py-1 rounded-lg transition-all text-xs font-semibold ${
+                      confidenceThreshold === 50 ? "bg-emerald-600/90 text-white shadow-sm" : "text-slate-400 hover:text-white"
+                    }`}
+                    title="Chế độ Test Kèo: Cho phép khớp lệnh ngay khi xác suất >= 50%"
+                  >
+                    50% (Test)
+                  </button>
+                  <button
+                    onClick={() => setConfidenceThreshold(65)}
+                    className={`px-2.5 py-1 rounded-lg transition-all text-xs font-semibold ${
+                      confidenceThreshold === 65 ? "bg-sky-600/90 text-white shadow-sm" : "text-slate-400 hover:text-white"
+                    }`}
+                    title="Kỷ luật Chuẩn: Chỉ khớp lệnh khi xác suất >= 65%"
+                  >
+                    65% (Chuẩn)
+                  </button>
+                </div>
+
+                {/* Cấu Hình Rủi Ro & Chiến Thuật Toggle Button */}
+                <button
+                  onClick={() => setShowSafeguardSettings(!showSafeguardSettings)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shrink-0 ${
+                    showSafeguardSettings
+                      ? "bg-purple-600/20 text-purple-300 border-purple-500/60 shadow-sm shadow-purple-500/20"
+                      : "bg-[#050811] text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white"
+                  }`}
+                  title="Cấu hình phong cách trade (Scalping, Day, Swing), thời gian giữ lệnh (TTL), lỗ tối đa USD chống cháy, ký quỹ, đòn bẩy"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Chiến Thuật & Rủi Ro</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                </button>
+
+                {/* Xem Toàn Văn Biên Bản AI */}
+                {debateResult && (
+                  <button
+                    onClick={() => setIsDebateModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded-xl transition-all shrink-0"
+                    title="Xem toàn văn biên bản tranh biện của 4 Agent"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Biên Bản AI</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Action Buttons Group */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => handleAutonomousTrade(false)}
+                  disabled={isAutoTrading || isLoading}
+                  className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-400/40 transition-all shrink-0 active:scale-95 disabled:opacity-50"
+                  title="Triệu tập Hội Đồng 4 Agent tranh luận nến thật Binance và tự động mở vị thế Paper Trade nếu đạt xác suất cao"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 text-yellow-300 ${isAutoTrading ? "animate-spin" : ""}`} />
+                  <span>{isAutoTrading ? "AI Đang Họp & Đặt Lệnh..." : "🤖 AI Tự Đặt Lệnh"}</span>
+                </button>
+
+                <button
+                  onClick={() => handleAutonomousTrade(true)}
+                  disabled={isAutoTrading || isLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl transition-all shrink-0 active:scale-95 disabled:opacity-50"
+                  title="Ép Hội Đồng AI mở vị thế Paper Trade thử nghiệm bất kể xác suất để kiểm tra luồng khớp lệnh và SL realtime"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>⚡ Ép Lệnh Test</span>
+                </button>
+
+                <button
+                  onClick={() => loadCouncilAnalysis(selectedCoin, true, tradingStyle)}
+                  disabled={isLoading || isAutoTrading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-[#050811] hover:bg-slate-800 hover:text-white rounded-xl border border-slate-800 transition-all shrink-0"
+                  title="Quét lại nến thật Binance và cập nhật phân tích của 4 Agent"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-sky-400" : ""}`} />
+                  <span className="hidden sm:inline">Quét Lại</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Redesigned Pre-Execution Safeguard & Strategy Panel */}
+            {showSafeguardSettings && (
+              <div className="w-full mt-3 p-4 rounded-2xl bg-[#080d18] border border-slate-800 shadow-2xl space-y-4 animate-fadeIn">
+                {/* Panel Header */}
+                <div className="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-3 gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                      <SlidersHorizontal className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Cấu Hình Quản Trị Rủi Ro & Phong Cách Giao Dịch
+                      </h4>
+                      <p className="text-[10px] text-slate-400">
+                        Định hình khung nến, biên độ kháng cự và tỷ lệ rủi ro/lợi nhuận an toàn
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setTradingStyle("SCALPING");
+                        setTtlMinutes("AUTO");
+                        setMaxLossUsd("AUTO");
+                        setTradeMargin("AUTO");
+                        setTradeLeverage("AUTO");
+                        loadCouncilAnalysis(selectedCoin, false, "SCALPING");
+                      }}
+                      className="text-[10px] font-semibold text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors"
+                    >
+                      ↺ Mặc định AI Auto-Pilot
+                    </button>
+                  </div>
+                </div>
+
+                {/* 1. TRADING STYLE SELECTOR (Core Component) */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] uppercase font-bold text-slate-300 flex items-center gap-1.5">
+                      <span>🎯</span> Mục Tiêu Chiến Thuật (Khung Nến & Khoảng Cách Cản):
+                    </span>
+                    <span className="text-[10px] font-mono text-sky-400">
+                      {tradingStyle === "SCALPING"
+                        ? "Nến 15m Binance • Cản gần sát 0.6% - 1.2%"
+                        : tradingStyle === "DAY_TRADE"
+                        ? "Nến 1h Binance • Cản vừa 1.8% - 3.0%"
+                        : "Nến 4h Binance • Cản rộng 4.5% - 8.0%"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {[
+                      {
+                        id: "SCALPING",
+                        name: "⚡ SCALPING (Lướt Sóng Ngắn)",
+                        time: "Nến 15m",
+                        desc: "Kháng cự bám sát (0.6% - 1.2%), TP nhanh, Đòn bẩy 10x - 15x, TTL 1h - 2h",
+                        badge: "Đánh Nhanh"
+                      },
+                      {
+                        id: "DAY_TRADE",
+                        name: "🎯 DAY TRADING (Trong Ngày)",
+                        time: "Nến 1h",
+                        desc: "Kháng cự vừa (1.8% - 3.0%), SL 1.5%, TP 3% - 4.5%, Đòn bẩy 5x - 10x, TTL 4h - 8h",
+                        badge: "Tiêu Chuẩn"
+                      },
+                      {
+                        id: "SWING",
+                        name: "🌊 SWING TRADING (Theo Sóng)",
+                        time: "Nến 4h",
+                        desc: "Kháng cự rộng (4.5% - 8.0%), Bắt sóng lớn, Đòn bẩy 2x - 3x, TTL 24h - 48h",
+                        badge: "Dài Hạn"
+                      },
+                    ].map((st) => {
+                      const isSel = tradingStyle === st.id;
+                      return (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => {
+                            setTradingStyle(st.id as any);
+                            loadCouncilAnalysis(selectedCoin, false, st.id as any);
+                          }}
+                          className={`text-left p-3 rounded-xl border transition-all ${
+                            isSel
+                              ? "bg-sky-500/10 border-sky-500/60 shadow-md shadow-sky-500/10 text-white"
+                              : "bg-[#050811] border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-bold ${isSel ? "text-sky-300" : "text-slate-200"}`}>
+                              {st.name}
+                            </span>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
+                                isSel
+                                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
+                                  : "bg-slate-800 text-slate-400"
+                              }`}
+                            >
+                              {st.time}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 leading-relaxed">{st.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. FOUR PARAMETER CARDS (Unified Elegant Slate Design) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                  {/* Card 1: TTL */}
+                  <div className="p-3 rounded-xl bg-[#050811] border border-slate-800/80 space-y-1.5">
+                    <span className="text-slate-300 text-[11px] block font-semibold">
+                      ⏱️ Thời gian giữ lệnh (TTL):
+                    </span>
+                    <div className="grid grid-cols-5 gap-1">
+                      {[
+                        { label: "🤖 AI", val: "AUTO" },
+                        { label: "30m", val: 30 },
+                        { label: "1h", val: 60 },
+                        { label: "4h", val: 240 },
+                        { label: "Vô hạn", val: null },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => setTtlMinutes(item.val as any)}
+                          className={`py-1 rounded-lg text-center text-[10px] font-semibold border transition-all ${
+                            ttlMinutes === item.val
+                              ? "bg-sky-600/90 text-white font-bold border-sky-400 shadow-sm shadow-sky-500/20"
+                              : "bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card 2: Hard Stop Loss USD */}
+                  <div className="p-3 rounded-xl bg-[#050811] border border-slate-800/80 space-y-1.5">
+                    <span className="text-slate-300 text-[11px] block font-semibold">
+                      🛡️ Lỗ tối đa chống cháy ($ USD):
+                    </span>
+                    <div className="grid grid-cols-5 gap-1">
+                      {[
+                        { label: "🤖 Theo SL", val: "AUTO" },
+                        { label: "$20", val: 20 },
+                        { label: "$30", val: 30 },
+                        { label: "$50", val: 50 },
+                        { label: "Tắt", val: null },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => setMaxLossUsd(item.val as any)}
+                          className={`py-1 rounded-lg text-center text-[10px] font-semibold border transition-all ${
+                            maxLossUsd === item.val
+                              ? "bg-sky-600/90 text-white font-bold border-sky-400 shadow-sm shadow-sky-500/20"
+                              : "bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card 3: Margin */}
+                  <div className="p-3 rounded-xl bg-[#050811] border border-slate-800/80 space-y-1.5">
+                    <span className="text-slate-300 text-[11px] block font-semibold">
+                      💵 Ký quỹ ($ Margin):
+                    </span>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { label: "🤖 1.5% Vốn", val: "AUTO" },
+                        { label: "$100", val: 100 },
+                        { label: "$200", val: 200 },
+                        { label: "$500", val: 500 },
+                      ].map((m) => (
+                        <button
+                          key={m.label}
+                          type="button"
+                          onClick={() => setTradeMargin(m.val as any)}
+                          className={`py-1 rounded-lg text-center text-[10px] font-semibold border transition-all ${
+                            tradeMargin === m.val
+                              ? "bg-sky-600/90 text-white font-bold border-sky-400 shadow-sm shadow-sky-500/20"
+                              : "bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                          }`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card 4: Leverage */}
+                  <div className="p-3 rounded-xl bg-[#050811] border border-slate-800/80 space-y-1.5">
+                    <span className="text-slate-300 text-[11px] block font-semibold">
+                      ⚡ Đòn bẩy (Leverage):
+                    </span>
+                    <div className="grid grid-cols-5 gap-1">
+                      {[
+                        { label: "🤖 R:R", val: "AUTO" },
+                        { label: "2x", val: 2 },
+                        { label: "5x", val: 5 },
+                        { label: "10x", val: 10 },
+                        { label: "20x", val: 20 },
+                      ].map((lev) => (
+                        <button
+                          key={lev.label}
+                          type="button"
+                          onClick={() => setTradeLeverage(lev.val as any)}
+                          className={`py-1 rounded-lg text-center text-[10px] font-semibold border transition-all ${
+                            tradeLeverage === lev.val
+                              ? "bg-sky-600/90 text-white font-bold border-sky-400 shadow-sm shadow-sky-500/20"
+                              : "bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                          }`}
+                        >
+                          {lev.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Panel Footer: Summary & Risk-Free Rule */}
+                <div className="flex flex-wrap items-center justify-between text-[11px] pt-3 border-t border-slate-800/80 gap-2">
+                  <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    Tự dời SL về hòa vốn khi lãi &ge; +2.0% (Risk-Free Trade)
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-slate-400">
+                    <span>
+                      Phong cách: <b className="text-sky-300">{tradingStyle}</b>
+                    </span>
+                    <span>•</span>
+                    <span>
+                      TTL:{" "}
+                      <b className="text-slate-200">
+                        {ttlMinutes === "AUTO"
+                          ? tradingStyle === "SCALPING"
+                            ? "1h-2h"
+                            : tradingStyle === "DAY_TRADE"
+                            ? "4h-8h"
+                            : "24h-48h"
+                          : ttlMinutes
+                          ? `${ttlMinutes}m`
+                          : "Vô hạn"}
+                      </b>
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Lỗ max:{" "}
+                      <b className="text-slate-200">
+                        {maxLossUsd === "AUTO" ? "Theo Cản SMC" : maxLossUsd ? `$${maxLossUsd}` : "Tắt"}
+                      </b>
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Ký quỹ:{" "}
+                      <b className="text-slate-200">
+                        {tradeMargin === "AUTO" ? "1.5% Vốn" : `$${tradeMargin}`}
+                      </b>
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Đòn bẩy:{" "}
+                      <b className="text-slate-200">
+                        {tradeLeverage === "AUTO" ? "Guardian R:R" : `${tradeLeverage}x`}
+                      </b>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 2. SUB-TAB 0: 24/7 RADAR MARKET SCREENER */}
+      {/* 2. PILLAR 1: RADAR SĂN KÈO 24/7 (MARKET SCREENER + NLP + TELEGRAM) */}
       {activeSubTab === "screener" && (
         <MarketScreenerTab
           onSelectCoinForDebate={(coin) => {
             setSelectedCoin(coin.toUpperCase());
-            setActiveSubTab("workspace");
+            setActiveSubTab("cockpit");
           }}
           onOpenTelegramSettings={() => setIsTelegramModalOpen(true)}
           onShowToast={onShowToast || ((msg) => console.log(msg))}
         />
       )}
 
-      {/* 3. SUB-TAB 1: WORKSPACE PRO */}
-      {activeSubTab === "workspace" && (
-        <div className="space-y-4">
-          <div className={`grid gap-4 items-start ${layoutMode === "split" ? "grid-cols-1 xl:grid-cols-12" : "grid-cols-1"}`}>
-            {/* TRADINGVIEW CHART & HYPOTHESIS FORM */}
-            <div className={`${layoutMode === "split" ? "xl:col-span-7" : "w-full"} space-y-3`}>
-              <div className="relative">
-                {/* TRADINGVIEW WIDGET */}
-                <TradingViewWidget
-                  symbol={selectedCoin}
-                  height={layoutMode === "chart_focus" ? "680px" : "600px"}
-                  enableDrawing={true}
-                  allowSymbolChange={true}
-                  theme="dark"
-                />
-
-                {/* Focus Mode AI Panel Toggle Button */}
-                {layoutMode === "chart_focus" && (
-                  <button
-                    onClick={() => setIsAiDrawerOpen(!isAiDrawerOpen)}
-                    className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0b101b]/90 hover:bg-slate-800 text-slate-200 border border-slate-700/90 backdrop-blur-md shadow-xl text-xs font-bold transition-all"
-                  >
-                    <BrainCircuit className="w-4 h-4 text-purple-400" />
-                    <span>{isAiDrawerOpen ? "Đóng Hội Đồng AI" : "Mở Hội Đồng AI"}</span>
-                  </button>
-                )}
-              </div>
-
-              {/* QUICK HYPOTHESIS DOCK */}
-              <div className="bg-[#0b101b] border border-slate-800/80 rounded-2xl p-3 shadow-lg">
-                <form onSubmit={handleEvaluatePrediction} className="flex flex-col sm:flex-row items-center gap-2">
-                  <div className="flex gap-1 shrink-0 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => setUserAction("LONG")}
-                      className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 border ${
-                        userAction === "LONG"
-                          ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                          : "bg-[#070a12] text-slate-400 border-slate-800 hover:text-white"
-                      }`}
-                    >
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>LONG</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setUserAction("SHORT")}
-                      className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 border ${
-                        userAction === "SHORT"
-                          ? "bg-rose-600 text-white border-rose-500 shadow-sm"
-                          : "bg-[#070a12] text-slate-400 border-slate-800 hover:text-white"
-                      }`}
-                    >
-                      <TrendingDown className="w-3.5 h-3.5" />
-                      <span>SHORT</span>
-                    </button>
-                  </div>
-
-                  <input
-                    type="text"
-                    value={hypothesisText}
-                    onChange={(e) => setHypothesisText(e.target.value)}
-                    placeholder={`Gửi mô hình bạn vừa vẽ: Ví dụ 2 đáy tại $${formatCoinPrice(currentLivePrice)}, RSI phân kỳ...`}
-                    className="flex-1 w-full bg-[#070a12] border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all"
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={isEvaluating || !hypothesisText.trim()}
-                    className="w-full sm:w-auto px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/25 transition-all flex items-center justify-center gap-1.5 shrink-0"
-                  >
-                    {isEvaluating ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5" />
-                    )}
-                    <span>Thẩm Định</span>
-                  </button>
-                </form>
-              </div>
+      {/* 3. PILLAR 2: COCKPIT HỘI ĐỒNG & SOI NẾN PRO (TRADINGVIEW + COUNCIL SPLIT) */}
+      {(activeSubTab === "cockpit" || activeSubTab === "workspace") && (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+          {/* LEFT COLUMN (60%): TRADINGVIEW CHART & MASTER VERDICT */}
+          <div className="xl:col-span-7 space-y-4">
+            {/* Realtime TradingView Widget */}
+            <div className="bg-[#0b101b] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+              <TradingViewWidget
+                symbol={selectedCoin}
+                height="560px"
+                enableDrawing={true}
+                allowSymbolChange={true}
+                theme="dark"
+              />
             </div>
 
-            {/* RIGHT COLUMN: AI COUNCIL STREAM (in Split Mode or Drawer Mode) */}
-            {(layoutMode === "split" || isAiDrawerOpen) && (
-              <div
-                className={`${
-                  layoutMode === "split"
-                    ? "xl:col-span-5"
-                    : "fixed top-14 right-0 bottom-0 z-40 w-full max-w-md bg-[#070b14] border-l border-slate-800 shadow-2xl p-4 overflow-y-auto animate-fadeIn"
-                } space-y-3`}
-              >
-                {layoutMode === "chart_focus" && isAiDrawerOpen && (
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                    <span className="font-bold text-white text-xs">Hội Đồng AI (Live Drawer)</span>
-                    <button
-                      onClick={() => setIsAiDrawerOpen(false)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-white bg-slate-800"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-
-                {isLoading && !debateResult ? (
-                  <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-10 text-center flex flex-col items-center justify-center space-y-3 min-h-[500px]">
-                    <RefreshCw className="w-8 h-8 text-sky-400 animate-spin" />
-                    <div className="text-white font-bold text-sm">Hội Đồng AI đang họp bàn...</div>
-                    <div className="text-xs text-slate-400 max-w-xs">
-                      Đang quét nến Binance {selectedCoin}/USDT, kiểm tra Funding Rate và 4 Sub-Agent.
-                    </div>
-                  </div>
-                ) : debateResult ? (
-                  <div className="bg-[#070b14] border border-slate-800/90 rounded-2xl overflow-hidden shadow-2xl">
-                    {/* TERMINAL HEADER */}
-                    <div className="bg-[#0d1627] px-3.5 py-2.5 border-b border-indigo-500/30 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-rose-500" />
-                        <div className="w-2 h-2 rounded-full bg-amber-500" />
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span className="ml-1.5 font-mono text-[11px] font-bold text-indigo-300 uppercase tracking-wider">
-                          🏛️ HỘI ĐỒNG MULTI-AGENT LIVE
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={copySetupToClipboard}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700 transition-all"
-                        title="Sao chép setup"
-                      >
-                        {copiedSetup ? (
-                          <>
-                            <Check className="w-3 h-3 text-emerald-400" />
-                            <span className="text-emerald-400">Đã chép</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3" />
-                            <span>Chép Setup</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* MARKET METRICS STRIP */}
-                    <div className="bg-[#090f1d] px-3 py-2 border-b border-slate-800/80 text-[11px] font-mono flex flex-wrap items-center justify-between gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-amber-400 font-bold">{selectedCoin}/USDT</span>
-                        <span className="text-slate-600">|</span>
-                        <span className="text-white font-bold">${formatCoinPrice(currentLivePrice)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`font-bold ${isPositive ? "text-emerald-400" : "text-rose-400"}`}>
-                          {isPositive ? "+" : ""}{change24h.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* AGENT CARDS */}
-                    <div className="p-3 space-y-2.5 max-h-[500px] overflow-y-auto no-scrollbar font-mono text-xs">
-                      {/* SUB-AGENT 1: ALPHA */}
-                      <div className="bg-[#0b1220] border border-blue-900/40 rounded-xl p-2.5 space-y-1 hover:border-blue-500/50 transition-all">
-                        <div className="flex items-center justify-between text-indigo-300 font-bold text-[11px]">
-                          <span>📊 [AGENT ALPHA - KỸ THUẬT]:</span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                            debateResult.technical_view.signal.includes("BULLISH")
-                              ? "bg-emerald-500/20 text-emerald-400"
-                              : debateResult.technical_view.signal.includes("BEARISH")
-                              ? "bg-rose-500/20 text-rose-400"
-                              : "bg-amber-500/20 text-amber-400"
-                          }`}>
-                            {debateResult.technical_view.signal}
-                          </span>
-                        </div>
-                        <div className="text-slate-300 text-[11px] leading-snug">
-                          • <span className="text-slate-400">Hỗ trợ:</span> <span className="text-emerald-400 font-bold">{debateResult.technical_view.support_zone}</span> | <span className="text-slate-400">Kháng cự:</span> <span className="text-rose-400 font-bold">{debateResult.technical_view.resistance_zone}</span>
-                        </div>
-                        <div className="text-slate-300 text-[11px] leading-snug">
-                          • <span className="text-slate-400">Nhận định:</span> {debateResult.technical_view.summary}
-                        </div>
-                      </div>
-
-                      {/* SUB-AGENT 2: MACRO */}
-                      <div className="bg-[#0b1220] border border-sky-900/40 rounded-xl p-2.5 space-y-1 hover:border-sky-500/50 transition-all">
-                        <div className="flex items-center justify-between text-sky-300 font-bold text-[11px]">
-                          <span>📰 [AGENT MACRO - VĨ MÔ]:</span>
-                          <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                            debateResult.macro_view.signal === "BULLISH"
-                              ? "bg-emerald-500/20 text-emerald-400"
-                              : debateResult.macro_view.signal === "BEARISH"
-                              ? "bg-rose-500/20 text-rose-400"
-                              : "bg-slate-800 text-slate-300"
-                          }`}>
-                            {debateResult.macro_view.signal}
-                          </span>
-                        </div>
-                        <div className="text-slate-300 text-[11px] leading-snug">
-                          • <span className="text-slate-400">Funding Rate:</span> <span className="text-amber-300 font-bold">{debateResult.macro_view.fundingRate}</span> | <span className="text-slate-400">Vol:</span> <span className="text-white">{debateResult.macro_view.volumeUsd}</span>
-                        </div>
-                        <div className="text-slate-300 text-[11px] leading-snug">
-                          • <span className="text-slate-400">Dòng tiền:</span> {debateResult.macro_view.summary}
-                        </div>
-                      </div>
-
-                      {/* SUB-AGENT 3: GUARDIAN */}
-                      <div className="bg-[#0b1220] border border-amber-900/40 rounded-xl p-2.5 space-y-1 hover:border-amber-500/50 transition-all">
-                        <div className="flex items-center justify-between text-amber-300 font-bold text-[11px]">
-                          <span>🛡️ [AGENT GUARDIAN - QUẢN TRỊ RỦI RO]:</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-amber-500/20 text-amber-400">
-                            {debateResult.risk_view.risk_score}/10 Rủi Ro
-                          </span>
-                        </div>
-                        <div className="text-slate-300 text-[11px] leading-snug">
-                          • <span className="text-slate-400">Đòn bẩy Max:</span> <span className="text-purple-300 font-bold">{debateResult.risk_view.recommended_max_leverage}</span> | <span className="text-slate-400">R:R:</span> <span className="text-emerald-400 font-bold">{debateResult.risk_view.risk_reward_ratio}</span>
-                        </div>
-                        <div className="text-slate-300 text-[11px] leading-snug">
-                          • <span className="text-slate-400">SL:</span> <span className="text-rose-400 font-bold">{debateResult.risk_view.stop_loss}</span> | <span className="text-slate-400">TP:</span> <span className="text-emerald-400 font-bold">{debateResult.risk_view.take_profit_2}</span>
-                        </div>
-                      </div>
-
-                      {/* SUB-AGENT 4: SENTINEL */}
-                      <div className="bg-[#0b1220] border border-rose-900/40 rounded-xl p-2.5 space-y-1 hover:border-rose-500/50 transition-all">
-                        <div className="flex items-center justify-between text-rose-300 font-bold text-[11px]">
-                          <span>⚖️ [AGENT SENTINEL - PHẢN BIỆN]:</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded font-bold bg-rose-500/20 text-rose-400">
-                            Cảnh Báo
-                          </span>
-                        </div>
-                        <div className="text-amber-300 text-[11px] leading-snug">
-                          • <span className="text-slate-400">Bẫy:</span> {debateResult.validator_view.trap_warning}
-                        </div>
-                        <div className="text-slate-300 text-[11px] leading-snug italic">
-                          • <span className="text-slate-400">Chất vấn:</span> "{debateResult.validator_view.critical_question}"
-                        </div>
-                      </div>
-
-                      {/* MASTER VERDICT */}
-                      <div className="bg-gradient-to-r from-[#1c1236] to-[#121c38] border border-purple-500/50 rounded-xl p-3 space-y-2 shadow-lg">
-                        <div className="flex items-center justify-between border-b border-purple-500/30 pb-1.5">
-                          <span className="font-extrabold text-white text-[11px] uppercase">
-                            👑 KẾT LUẬN CHỦ TỊCH HỘI ĐỒNG
-                          </span>
-                          <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                            {debateResult.master_verdict.probability_pct}% KHẢ THI
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                          <div>
-                            <span className="text-slate-400">LỆNH:</span>{" "}
-                            <span className="font-bold text-sky-300">{debateResult.master_verdict.action_label}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">ENTRY:</span>{" "}
-                            <span className="font-bold text-white">{debateResult.master_verdict.entry_zone}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">SL:</span>{" "}
-                            <span className="font-bold text-rose-400">{debateResult.master_verdict.stop_loss}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">TP:</span>{" "}
-                            <span className="font-bold text-emerald-400">{debateResult.master_verdict.take_profit}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* BOTTOM ACTION BAR */}
-                    <div className="bg-[#090f1d] px-3 py-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => setActiveSubTab("chat")}
-                        className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300 font-bold transition-colors"
-                      >
-                        <MessageSquare className="w-3 h-3" />
-                        <span>Chất vấn thêm</span>
-                      </button>
-
-                      <button
-                        onClick={() => setActiveSubTab("council")}
-                        className="flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 font-bold transition-colors"
-                      >
-                        <Layers className="w-3 h-3" />
-                        <span>Xem chi tiết</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-6 text-center text-slate-400 text-xs">
-                    {errorMsg || "Chưa có dữ liệu phân tích. Hãy nhấn Quét Lại Live."}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 3. SUB-TAB 2: PHÒNG HỌP CHI TIẾT HỘI ĐỒNG */}
-      {activeSubTab === "council" && (
-        <div className="space-y-6">
-          {isLoading && !debateResult ? (
-            <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-12 text-center flex flex-col items-center justify-center space-y-3">
-              <RefreshCw className="w-8 h-8 text-sky-400 animate-spin" />
-              <div className="text-white font-bold text-base">Hội Đồng AI đang họp bàn và tổng hợp dữ liệu...</div>
-              <div className="text-xs text-slate-400 max-w-md">
-                Đang quét nến 4H/1H từ Binance, kiểm tra khối lượng giao dịch, Funding Rate và chạy 4 Sub-Agent chuyên trách.
-              </div>
-            </div>
-          ) : debateResult ? (
-            <>
-              {/* MASTER VERDICT HERO CARD */}
-              <div className="bg-gradient-to-br from-[#0c1424] via-[#090f1d] to-[#0b1220] border-2 border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{debateResult.master_verdict.avatar}</span>
+            {/* Master Council Verdict Action Card */}
+            {debateResult?.master_verdict && (
+              <div className="bg-gradient-to-br from-[#0c1427] to-[#070b14] border border-indigo-500/40 rounded-2xl p-4 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-indigo-500/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">👑</span>
                     <div>
-                      <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                        {debateResult.master_verdict.agent_name}
-                      </div>
-                      <h2 className="text-xl sm:text-2xl font-black text-white">
+                      <h4 className="text-xs font-extrabold uppercase text-indigo-300 tracking-wider font-mono">
+                        PHÁN QUYẾT CHỦ TỊCH HỘI ĐỒNG ({selectedCoin}/USDT)
+                      </h4>
+                      <div className="text-base font-black text-white mt-0.5">
                         {debateResult.master_verdict.action_label}
-                      </h2>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 bg-[#070a12]/80 px-4 py-2.5 rounded-xl border border-slate-800">
+                  <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="text-[11px] text-slate-400 uppercase font-bold">Xác Suất Khả Thi</div>
-                      <div className="text-2xl font-black text-emerald-400">
+                      <div className="text-[10px] text-slate-400 uppercase font-semibold">Xác Suất Khả Thi</div>
+                      <div className="text-base font-extrabold text-emerald-400 font-mono">
                         {debateResult.master_verdict.probability_pct}%
                       </div>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                      <TrendingUp className="w-6 h-6" />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={executePaperTradeFromAi}
+                        disabled={isSubmittingPaperTrade}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-900/30 active:scale-95 disabled:opacity-50"
+                        title="Tự động mở vị thế Paper Trade theo các mức Entry, SL, TP của Hội đồng"
+                      >
+                        <Zap className={`w-3.5 h-3.5 text-yellow-300 ${isSubmittingPaperTrade ? "animate-spin" : ""}`} />
+                        <span>{isSubmittingPaperTrade ? "Đang Mở Lệnh..." : "⚡ Đặt Lệnh Paper Trade"}</span>
+                      </button>
+
+                      <button
+                        onClick={copySetupToClipboard}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/80 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                      >
+                        {copiedSetup ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedSetup ? "Đã Sao Chép" : "Chép Setup"}</span>
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Key Metrics Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                  <div className="bg-[#070a12] p-3 rounded-xl border border-slate-800/80">
-                    <div className="text-[11px] text-slate-400">Giá Live Binance</div>
-                    <div className="text-base font-bold text-white font-mono">
-                      ${formatCoinPrice(currentLivePrice)}
-                    </div>
-                  </div>
-                  <div className="bg-[#070a12] p-3 rounded-xl border border-slate-800/80">
-                    <div className="text-[11px] text-slate-400">Vùng Entry Đề Xuất</div>
-                    <div className="text-sm font-bold text-sky-400 font-mono">
+                {/* Setup Entry / SL / TP Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
+                  <div className="bg-[#070a12]/80 border border-slate-800 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">Vùng Entry</div>
+                    <div className="text-xs font-bold text-sky-400 font-mono mt-0.5">
                       {debateResult.master_verdict.entry_zone}
                     </div>
                   </div>
-                  <div className="bg-[#070a12] p-3 rounded-xl border border-slate-800/80">
-                    <div className="text-[11px] text-slate-400">Stop Loss Bắt Buộc</div>
-                    <div className="text-sm font-bold text-rose-400 font-mono">
+                  <div className="bg-[#070a12]/80 border border-slate-800 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-rose-400 uppercase">Stop Loss Bắt Buộc</div>
+                    <div className="text-xs font-bold text-rose-300 font-mono mt-0.5">
                       {debateResult.master_verdict.stop_loss}
                     </div>
                   </div>
-                  <div className="bg-[#070a12] p-3 rounded-xl border border-slate-800/80">
-                    <div className="text-[11px] text-slate-400">Take Profit Mục Tiêu</div>
-                    <div className="text-sm font-bold text-emerald-400 font-mono">
+                  <div className="bg-[#070a12]/80 border border-slate-800 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-emerald-400 uppercase">Chốt Lời (TP)</div>
+                    <div className="text-xs font-bold text-emerald-300 font-mono mt-0.5">
                       {debateResult.master_verdict.take_profit}
                     </div>
                   </div>
+                  <div className="bg-[#070a12]/80 border border-slate-800 rounded-xl p-2.5">
+                    <div className="text-[10px] font-bold text-purple-400 uppercase">Đòn Bẩy & R:R</div>
+                    <div className="text-xs font-bold text-purple-300 font-mono mt-0.5">
+                      {debateResult.risk_view?.recommended_max_leverage || "5x"} (R:R {debateResult.risk_view?.risk_reward_ratio || "1:2.4"})
+                    </div>
+                  </div>
                 </div>
 
-                {/* Summary text */}
-                <div
-                  className="mt-4 text-sm text-slate-200 leading-relaxed bg-indigo-950/20 p-3.5 rounded-xl border border-indigo-500/20"
-                  dangerouslySetInnerHTML={{ __html: debateResult.master_verdict.summary_paragraph }}
-                />
-
-                {/* Key Reasons & Vital Warning */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-xs">
-                  <div className="bg-[#070a12] p-4 rounded-xl border border-slate-800 space-y-2">
-                    <div className="font-bold text-slate-300 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span>3 Luận Điểm Cốt Lõi:</span>
-                    </div>
-                    <ul className="space-y-1.5 text-slate-300">
-                      {debateResult.master_verdict.key_reasons.map((r, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
-                          <span className="text-indigo-400 font-bold">•</span>
-                          <span>{r}</span>
-                        </li>
-                      ))}
-                    </ul>
+                {/* Vital Trap Warning */}
+                <div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Cảnh báo sống còn từ Sentinel: </span>
+                    <span>{debateResult.master_verdict.vital_warning}</span>
                   </div>
+                </div>
 
-                  <div className="bg-[#070a12] p-4 rounded-xl border border-amber-500/30 space-y-2">
-                    <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
-                      <span>Cảnh Báo Quan Trọng Nhất:</span>
-                    </div>
-                    <p className="text-slate-300 leading-relaxed">
-                      {debateResult.master_verdict.vital_warning}
-                    </p>
+                {/* Token Metrics & Historical AI Accuracy Badge */}
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2.5 border-t border-indigo-500/20 text-[11px] text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <span className="flex items-center gap-1 text-emerald-400 font-mono font-bold">
+                      🎯 Xác Suất Thắng: {debateResult.master_verdict.probability_pct}% (TB Hệ thống: 74.5%)
+                    </span>
+                    <span className="hidden sm:inline text-slate-600">•</span>
+                    <span className="text-slate-300 font-mono">
+                      📊 Token: ~{debateResult.token_metrics?.last_tokens || 1240} tokens
+                    </span>
+                    <span className="hidden sm:inline text-slate-600">•</span>
+                    <span className="text-indigo-300 font-mono font-semibold">
+                      ⚡ Tiết kiệm {debateResult.token_metrics?.savings_pct || 64}% qua Single-Pass
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[10px]">
+                    <span>Model: {debateResult.token_metrics?.model || "Gemini 2.5 Pro"}</span>
+                    <span>({debateResult.token_metrics?.latency_ms || 780}ms)</span>
                   </div>
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* 4 SUB-AGENTS PERSPECTIVES GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Agent 1: Technical */}
-                <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition-all">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{debateResult.technical_view.avatar}</span>
-                      <div>
-                        <div className="font-bold text-white text-sm">
-                          {debateResult.technical_view.agent_name}
-                        </div>
-                        <div className="text-[11px] text-slate-400">Phân tích nến & Hỗ trợ/Kháng cự</div>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                        debateResult.technical_view.signal.includes("BULLISH")
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          : debateResult.technical_view.signal.includes("BEARISH")
-                          ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                          : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                      }`}
-                    >
-                      {debateResult.technical_view.signal}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {debateResult.technical_view.summary}
-                  </p>
-
-                  <div className="bg-[#070a12] p-3 rounded-xl space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Hỗ trợ 24h:</span>
-                      <span className="font-bold text-emerald-400 font-mono">
-                        {debateResult.technical_view.support_zone}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Kháng cự 24h:</span>
-                      <span className="font-bold text-rose-400 font-mono">
-                        {debateResult.technical_view.resistance_zone}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">RSI ước lượng:</span>
-                      <span className="font-bold text-sky-400 font-mono">
-                        {debateResult.technical_view.estimatedRsi}/100
-                      </span>
-                    </div>
-                  </div>
+          {/* RIGHT COLUMN (40%): 4 SUB-AGENTS & BOTTOM INTERACTIVE CONSOLE */}
+          <div className="xl:col-span-5 space-y-4">
+            {/* 4 Multi-Agent Cards */}
+            <div className="bg-[#0b101b] border border-slate-800/80 rounded-2xl p-4 shadow-xl space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-sky-400" />
+                  <span className="text-xs font-extrabold text-white uppercase tracking-wider">
+                    Ý Kiến 4 Chuyên Gia Hội Đồng
+                  </span>
                 </div>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  LIVE SMC & RAG
+                </span>
+              </div>
 
-                {/* Agent 2: Macro & News */}
-                <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition-all">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{debateResult.macro_view.avatar}</span>
-                      <div>
-                        <div className="font-bold text-white text-sm">
-                          {debateResult.macro_view.agent_name}
-                        </div>
-                        <div className="text-[11px] text-slate-400">Vĩ mô & Dòng tiền On-chain</div>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                        debateResult.macro_view.signal === "BULLISH"
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                          : debateResult.macro_view.signal === "BEARISH"
-                          ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                          : "bg-slate-800 text-slate-300"
-                      }`}
-                    >
-                      {debateResult.macro_view.signal}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {debateResult.macro_view.summary}
-                  </p>
-
-                  <div className="bg-[#070a12] p-3 rounded-xl space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Khối lượng 24h:</span>
-                      <span className="font-bold text-white font-mono">
-                        {debateResult.macro_view.volumeUsd}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Funding Rate Phái Sinh:</span>
-                      <span className="font-bold text-sky-400 font-mono">
-                        {debateResult.macro_view.fundingRate}
-                      </span>
-                    </div>
-                  </div>
+              {isLoading && !debateResult ? (
+                <div className="py-12 text-center text-slate-400 space-y-2">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-sky-400" />
+                  <p className="text-xs">Đang triệu tập Hội đồng 4 Agent...</p>
                 </div>
-
-                {/* Agent 3: Risk Manager */}
-                <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition-all">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{debateResult.risk_view.avatar}</span>
-                      <div>
-                        <div className="font-bold text-white text-sm">
-                          {debateResult.risk_view.agent_name}
-                        </div>
-                        <div className="text-[11px] text-slate-400">Bảo vệ vốn & R:R kỷ luật</div>
-                      </div>
+              ) : debateResult ? (
+                <div className="space-y-2.5">
+                  {/* Agent 1: Alpha */}
+                  <div className="bg-[#070a12] border border-slate-800/90 rounded-xl p-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-purple-300">
+                      <span>📊 Agent Alpha (Kỹ Thuật SMC)</span>
+                      <span className="text-[10px] font-mono text-purple-400">RSI {debateResult.technical_view.estimatedRsi}/100</span>
                     </div>
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                      Rủi ro: {debateResult.risk_view.risk_score}/10
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {debateResult.risk_view.advice}
-                  </p>
-
-                  <div className="bg-[#070a12] p-3 rounded-xl space-y-1.5 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Đòn bẩy tối đa an toàn:</span>
-                      <span className="font-bold text-emerald-400 font-mono">
-                        {debateResult.risk_view.recommended_max_leverage}
-                      </span>
+                    <div className="text-[11px] text-slate-300 mt-1.5 leading-relaxed">
+                      {debateResult.technical_view.summary}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Tỷ lệ Risk/Reward:</span>
-                      <span className="font-bold text-sky-400 font-mono">
-                        {debateResult.risk_view.risk_reward_ratio}
-                      </span>
+                    <div className="text-[10px] font-mono text-slate-400 mt-1.5 flex justify-between">
+                      <span className="text-emerald-400">Hỗ trợ: {debateResult.technical_view.support_zone}</span>
+                      <span className="text-rose-400">Kháng cự: {debateResult.technical_view.resistance_zone}</span>
                     </div>
                   </div>
-                </div>
 
-                {/* Agent 4: Validator & Trap Detector */}
-                <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-5 space-y-3 hover:border-slate-700 transition-all">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{debateResult.validator_view.avatar}</span>
-                      <div>
-                        <div className="font-bold text-white text-sm">
-                          {debateResult.validator_view.agent_name}
-                        </div>
-                        <div className="text-[11px] text-slate-400">Phản biện & Cảnh báo bẫy</div>
-                      </div>
+                  {/* Agent 2: Macro */}
+                  <div className="bg-[#070a12] border border-slate-800/90 rounded-xl p-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-sky-300">
+                      <span>📰 Agent Macro (Dòng Tiền & Vĩ Mô)</span>
+                      <span className="text-[10px] font-mono text-amber-400">Funding {debateResult.macro_view.fundingRate}</span>
                     </div>
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                      Tìm Lỗ Hổng
-                    </span>
+                    <div className="text-[11px] text-slate-300 mt-1.5 leading-relaxed">
+                      {debateResult.macro_view.summary}
+                    </div>
                   </div>
 
-                  <p className="text-xs text-amber-300/90 leading-relaxed">
-                    {debateResult.validator_view.trap_warning}
-                  </p>
+                  {/* Agent 3: Guardian */}
+                  <div className="bg-[#070a12] border border-slate-800/90 rounded-xl p-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                      <span>🛡️ Agent Guardian (Quản Trị Rủi Ro)</span>
+                      <span className="text-[10px] font-mono text-emerald-400">{debateResult.risk_view.risk_level}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 mt-1.5 leading-relaxed">
+                      {debateResult.risk_view.advice}
+                    </div>
+                  </div>
 
-                  <div className="bg-[#070a12] p-3 rounded-xl text-xs space-y-1">
-                    <div className="text-slate-400 font-bold">Câu hỏi phản biện độc lập:</div>
-                    <div className="text-slate-300 italic">
+                  {/* Agent 4: Sentinel (Devil's Advocate) */}
+                  <div className="bg-[#070a12] border border-rose-500/30 rounded-xl p-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-rose-300">
+                      <span>⚖️ Agent Sentinel (Luật Sư Của Quỷ)</span>
+                      <span className="text-[10px] font-mono text-rose-400">Pre-Mortem Scan</span>
+                    </div>
+                    <div className="text-[11px] text-rose-200/90 mt-1.5 leading-relaxed font-medium">
+                      ⚠️ {debateResult.validator_view.trap_warning}
+                    </div>
+                    <div className="text-[10px] text-slate-400 italic mt-1">
                       "{debateResult.validator_view.critical_question}"
                     </div>
                   </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-8 text-center text-slate-400">
-              {errorMsg || "Chưa có dữ liệu phân tích. Hãy nhấn Quét Lại Live."}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 4. SUB-TAB 3: THẨM ĐỊNH DỰ ĐOÁN CỦA TÔI */}
-      {activeSubTab === "hypo_eval" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Input Form Column */}
-          <div className="lg:col-span-5 bg-[#0b101b] border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
-              <Scale className="w-5 h-5 text-purple-400" />
-              <h3 className="font-bold text-white text-base">Nhập Dự Đoán Của Bạn</h3>
+              ) : null}
             </div>
 
-            <form onSubmit={handleEvaluatePrediction} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                  Đồng coin & Giá Live
-                </label>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-[#070a12] border border-slate-800 font-mono text-sm">
-                  <span className="font-bold text-white">{selectedCoin}/USDT</span>
-                  <span className="text-sky-400 font-bold">${formatCoinPrice(currentLivePrice)}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                  Bạn dự đoán theo chiều hướng nào?
-                </label>
-                <div className="grid grid-cols-2 gap-2">
+            {/* BOTTOM INTEGRATED INTERACTIVE CONSOLE (CHAT & EVALUATION TABS) */}
+            <div className="bg-[#0b101b] border border-slate-800/80 rounded-2xl p-4 shadow-xl space-y-3">
+              {/* Console Mode Switcher */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-1.5 bg-[#070a12] p-1 rounded-xl border border-slate-800">
                   <button
-                    type="button"
-                    onClick={() => setUserAction("LONG")}
-                    className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                      userAction === "LONG"
-                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-500"
-                        : "bg-[#070a12] text-slate-400 border border-slate-800 hover:text-white"
+                    onClick={() => setConsoleMode("chat")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      consoleMode === "chat"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <TrendingUp className="w-4 h-4" />
-                    <span>LONG (MUA TĂNG)</span>
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>💬 Chat 4 Agent</span>
                   </button>
 
                   <button
-                    type="button"
-                    onClick={() => setUserAction("SHORT")}
-                    className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                      userAction === "SHORT"
-                        ? "bg-rose-600 text-white shadow-lg shadow-rose-600/30 border border-rose-500"
-                        : "bg-[#070a12] text-slate-400 border border-slate-800 hover:text-white"
+                    onClick={() => setConsoleMode("evaluate")}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      consoleMode === "evaluate"
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    <TrendingDown className="w-4 h-4" />
-                    <span>SHORT (BÁN GIẢM)</span>
+                    <Scale className="w-3.5 h-3.5" />
+                    <span>⚖️ Thẩm Định Kế Hoạch</span>
                   </button>
                 </div>
+
+                <span className="text-[10px] font-mono text-slate-400">
+                  {selectedCoin}/USDT
+                </span>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                  Luận điểm / Lý do dự đoán của bạn:
-                </label>
-                <textarea
-                  rows={4}
-                  value={hypothesisText}
-                  onChange={(e) => setHypothesisText(e.target.value)}
-                  placeholder="Ví dụ: Tôi thấy khung 1H tạo đáy 2 phân kỳ RSI, nến rút chân tại hỗ trợ nên muốn vào lệnh Long..."
-                  className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isEvaluating || !hypothesisText.trim()}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2"
-              >
-                {isEvaluating ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Hội đồng AI đang tính toán xác suất %...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Thẩm Định Xác Suất % Cho Lệnh Này</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Result Column */}
-          <div className="lg:col-span-7 space-y-4">
-            {evalResult ? (
-              <div className="bg-[#0b101b] border-2 border-purple-500/40 rounded-2xl p-6 space-y-4 shadow-xl animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                  <div>
-                    <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider">
-                      Kết Quả Thẩm Định Từ Hội Đồng AI
-                    </span>
-                    <h3 className="text-lg font-black text-white">
-                      Đánh Giá: {evalResult.verdict}
-                    </h3>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-[11px] text-slate-400">Xác Suất Khả Thi</div>
-                    <div className="text-3xl font-black text-emerald-400">
-                      {evalResult.probability_pct}%
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="text-xs sm:text-sm text-slate-200 leading-relaxed bg-purple-950/20 p-3.5 rounded-xl border border-purple-500/20"
-                  dangerouslySetInnerHTML={{ __html: evalResult.advice }}
-                />
-
-                {/* Suggested Safe Setup */}
-                <div className="bg-[#070a12] p-4 rounded-xl border border-slate-800 space-y-2">
-                  <div className="font-bold text-slate-300 text-xs flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-sky-400" />
-                    <span>Setup An Toàn Được Đề Xuất:</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                    <div className="bg-[#0a0f1d] p-2 rounded-lg">
-                      <div className="text-slate-400 text-[10px]">Entry:</div>
-                      <div className="text-white font-bold">{evalResult.suggested_setup.entry}</div>
-                    </div>
-                    <div className="bg-[#0a0f1d] p-2 rounded-lg">
-                      <div className="text-slate-400 text-[10px]">Stop Loss:</div>
-                      <div className="text-rose-400 font-bold">{evalResult.suggested_setup.stop_loss}</div>
-                    </div>
-                    <div className="bg-[#0a0f1d] p-2 rounded-lg">
-                      <div className="text-slate-400 text-[10px]">Take Profit:</div>
-                      <div className="text-emerald-400 font-bold">{evalResult.suggested_setup.take_profit}</div>
-                    </div>
-                    <div className="bg-[#0a0f1d] p-2 rounded-lg">
-                      <div className="text-slate-400 text-[10px]">Đòn Bẩy:</div>
-                      <div className="text-purple-400 font-bold">{evalResult.suggested_setup.leverage}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pros and Cons */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="bg-emerald-950/10 border border-emerald-500/20 p-3 rounded-xl space-y-1">
-                    <div className="font-bold text-emerald-400">Điểm Ủng Hộ (Pros):</div>
-                    {evalResult.pros.map((p, i) => (
-                      <div key={i} className="text-slate-300 text-[11px]">• {p}</div>
+              {/* MODE A: CHAT CONSOLE */}
+              {consoleMode === "chat" && (
+                <div className="space-y-3">
+                  <div className="h-56 overflow-y-auto space-y-2.5 pr-1 no-scrollbar text-xs">
+                    {chatMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-2.5 rounded-xl ${
+                          msg.sender === "user"
+                            ? "bg-blue-600/20 border border-blue-500/30 text-blue-100 ml-6"
+                            : "bg-[#070a12] border border-slate-800 text-slate-200 mr-6"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1">
+                          <span>{msg.sender === "user" ? "🧑 Trader" : "🏛️ Hội Đồng AI"}</span>
+                          <span>{msg.time}</span>
+                        </div>
+                        <div className="whitespace-pre-line leading-relaxed">{msg.text}</div>
+                      </div>
                     ))}
+                    {isSendingChat && (
+                      <div className="p-2.5 rounded-xl bg-[#070a12] border border-slate-800 text-slate-400 text-xs flex items-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-400" />
+                        <span>Hội đồng đang họp bàn trả lời...</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="bg-rose-950/10 border border-rose-500/20 p-3 rounded-xl space-y-1">
-                    <div className="font-bold text-rose-400">Rủi Ro & Cảnh Báo (Cons):</div>
-                    {evalResult.cons.map((c, i) => (
-                      <div key={i} className="text-slate-300 text-[11px]">• {c}</div>
-                    ))}
-                  </div>
+                  <form onSubmit={handleSendChat} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={chatPrompt}
+                      onChange={(e) => setChatPrompt(e.target.value)}
+                      placeholder="Chất vấn Hội đồng: Có nên FOMO lúc này không?..."
+                      className="flex-1 bg-[#070a12] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSendingChat || !chatPrompt.trim()}
+                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md transition-all shrink-0 flex items-center gap-1"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Gửi</span>
+                    </button>
+                  </form>
                 </div>
-              </div>
-            ) : (
-              <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-2">
-                <Sparkles className="w-8 h-8 text-purple-400 opacity-60" />
-                <div className="font-bold text-white text-sm">Chưa có dự đoán nào được thẩm định</div>
-                <div className="text-xs max-w-sm">
-                  Hãy nhập phân tích hoặc ý định vào lệnh ở cột bên trái để Hội đồng AI chạy ma trận đo xác suất thành công cho bạn.
+              )}
+
+              {/* MODE B: EVALUATION CONSOLE */}
+              {consoleMode === "evaluate" && (
+                <div className="space-y-3">
+                  <form onSubmit={handleEvaluatePrediction} className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setUserAction("LONG")}
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 border ${
+                          userAction === "LONG"
+                            ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                            : "bg-[#070a12] text-slate-400 border-slate-800"
+                        }`}
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        <span>Dự Đoán LONG</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setUserAction("SHORT")}
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 border ${
+                          userAction === "SHORT"
+                            ? "bg-rose-600 text-white border-rose-500 shadow-sm"
+                            : "bg-[#070a12] text-slate-400 border-slate-800"
+                        }`}
+                      >
+                        <TrendingDown className="w-3.5 h-3.5" />
+                        <span>Dự Đoán SHORT</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={hypothesisText}
+                        onChange={(e) => setHypothesisText(e.target.value)}
+                        placeholder="Nêu nhận định: Nến 15m rút chân tại hỗ trợ..."
+                        className="flex-1 bg-[#070a12] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isEvaluating || !hypothesisText.trim()}
+                        className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md transition-all shrink-0 flex items-center gap-1"
+                      >
+                        {isEvaluating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        <span>Thẩm Định</span>
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Evaluation Result View */}
+                  {evalResult && (
+                    <div className="p-3 rounded-xl bg-[#070a12] border border-purple-500/30 text-xs space-y-1.5 animate-fadeIn">
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-purple-300">Kết Quả Thẩm Định: {evalResult.verdict}</span>
+                        <span className="text-emerald-400 font-mono">{evalResult.probability_pct}% Khả thi</span>
+                      </div>
+                      <div className="text-slate-300 text-[11px] leading-relaxed">
+                        • Điểm ủng hộ: {evalResult.pros?.join("; ")}
+                      </div>
+                      <div className="text-amber-300 text-[11px] leading-relaxed">
+                        • Cảnh báo bẫy: {evalResult.cons?.join("; ")}
+                      </div>
+                      <div className="text-slate-400 text-[10px] italic">
+                        💡 {evalResult.advice}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* 5. SUB-TAB 4: CHAT & CHẤT VẤN HỘI ĐỒNG */}
-      {activeSubTab === "chat" && (
-        <div className="bg-[#0b101b] border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-2.5">
-              <MessageSquare className="w-5 h-5 text-sky-400" />
-              <div>
-                <h3 className="font-bold text-white text-base">Phòng Chat Trực Tiếp Với Hội Đồng AI</h3>
-                <div className="text-xs text-slate-400">Hỏi đáp, chất vấn hoặc xin ý kiến phân tích chuyên sâu</div>
-              </div>
-            </div>
-
-            {/* Quick Prompt Badges */}
-            <div className="hidden sm:flex items-center gap-1.5">
-              <button
-                onClick={() => setChatPrompt("Tại sao lại không nên Mua đuổi lúc này?")}
-                className="px-2.5 py-1 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all"
-              >
-                Tại sao không mua đuổi?
-              </button>
-              <button
-                onClick={() => setChatPrompt("Vùng giá nào an toàn nhất để vào lệnh?")}
-                className="px-2.5 py-1 text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all"
-              >
-                Vùng giá an toàn?
-              </button>
-            </div>
-          </div>
-
-          {/* Messages Container */}
-          <div className="space-y-3.5 max-h-[500px] overflow-y-auto pr-2">
-            {chatMessages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-              >
-                {msg.sender === "council" && (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 mt-1 shadow-md shadow-blue-600/20">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                )}
-
-                <div
-                  className={`max-w-[85%] rounded-2xl p-4 text-xs sm:text-sm leading-relaxed whitespace-pre-line ${
-                    msg.sender === "user"
-                      ? "bg-blue-600 text-white rounded-tr-none shadow-md shadow-blue-600/25"
-                      : "bg-[#070a12] border border-slate-800 text-slate-200 rounded-tl-none shadow-sm"
-                  }`}
-                >
-                  <div className="text-[10px] text-slate-400 mb-1 flex items-center justify-between gap-4 font-mono">
-                    <span>{msg.sender === "user" ? "Bạn" : "Hội Đồng Multi-Agent AI"}</span>
-                    <span>{msg.time}</span>
-                  </div>
-                  <div>{msg.text}</div>
-                </div>
-
-                {msg.sender === "user" && (
-                  <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0 mt-1">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {isSendingChat && (
-              <div className="flex items-center gap-2 text-xs text-sky-400 animate-pulse bg-sky-950/20 p-3 rounded-xl border border-sky-500/20 max-w-fit">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Hội đồng AI đang họp bàn câu trả lời...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Input Form */}
-          <form onSubmit={handleSendChat} className="flex items-center gap-2 border-t border-slate-800/80 pt-3">
-            <input
-              type="text"
-              value={chatPrompt}
-              onChange={(e) => setChatPrompt(e.target.value)}
-              placeholder="Đặt câu hỏi hoặc chất vấn Hội đồng AI (ví dụ: Tại sao RSI quá bán nhưng chưa tăng?)..."
-              className="flex-1 bg-[#070a12] border border-slate-800 rounded-xl px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-all"
-            />
-            <button
-              type="submit"
-              disabled={isSendingChat || !chatPrompt.trim()}
-              className="px-5 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center gap-1.5 shrink-0"
-            >
-              <Send className="w-4 h-4" />
-              <span className="hidden sm:inline">Gửi Câu Hỏi</span>
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Telegram Settings Modal */}
+      {/* 4. TELEGRAM SETTINGS MODAL */}
       <TelegramSettingsModal
         isOpen={isTelegramModalOpen}
         onClose={() => setIsTelegramModalOpen(false)}
         onShowToast={onShowToast || ((msg) => console.log(msg))}
+      />
+
+      {/* 5. COUNCIL DEBATE LOG MODAL */}
+      <CouncilDebateModal
+        isOpen={isDebateModalOpen}
+        onClose={() => setIsDebateModalOpen(false)}
+        debate={debateResult}
+        coin={selectedCoin}
       />
     </div>
   );

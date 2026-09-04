@@ -15,6 +15,13 @@ class NewsController {
     return res.json({ success: true, tickers });
   }
 
+  getVolatilityStream(req, res, query) {
+    const volatilityService = require('../services/volatility-detector.service');
+    const limit = query && query.limit ? parseInt(query.limit, 10) : 10;
+    const events = volatilityService.getLatestEvents(limit);
+    return res.json({ success: true, events });
+  }
+
   async getNewsArticles(req, res, query) {
     const coin = query.coin || 'BTC';
     const articles = await newsService.getLatestNews(coin);
@@ -45,10 +52,12 @@ class NewsController {
         market = await binanceService.getTicker24h(coin);
       }
       const response = await masterCouncil.chatWithCouncil(prompt, coin, market);
+      const out = response.output || response.reply || response.text || 'Đã thực thi thành công phân tích AGY.';
+      debateRepository.saveChat(coin, prompt, out);
       return res.json({
         success: true,
         coin,
-        output: response.output || response.text || 'Đã thực thi thành công phân tích AGY.'
+        output: out
       });
     } catch (err) {
       return res.status(500).json({ error: err.message });

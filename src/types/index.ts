@@ -3,9 +3,22 @@
 export type MainTab = "theory" | "practice" | "journal" | "news" | "ai_trader" | "human_trader";
 export type TheorySubTab = "reader" | "atlas";
 export type JournalSubTab = "trades" | "notes" | "aireview";
-export type NewsSubTab = "analyze" | "chat" | "feed";
-export type AiTraderSubTab = "screener" | "workspace" | "council" | "hypo_eval" | "chat";
+export type NewsSubTab = "analyze" | "feed";
+export type AiTraderSubTab = "screener" | "cockpit" | "workspace" | "council" | "hypo_eval" | "chat";
 export type HumanTraderSubTab = "trade_desk" | "positions" | "history";
+
+export interface VolatilityEvent {
+  id: string;
+  timestamp: string;
+  coin: string;
+  symbol: string;
+  type: string;
+  badge: string;
+  price: number;
+  changePct: number;
+  color: "emerald" | "rose" | "amber" | "purple";
+  description: string;
+}
 
 // 1. Module 1: Theory
 export interface Chapter {
@@ -323,6 +336,7 @@ export interface MasterVerdict {
 export interface CouncilDebateResult {
   success: boolean;
   coin: string;
+  tradingStyle?: "SCALPING" | "DAY_TRADE" | "SWING" | string;
   timestamp: string;
   liveMarket?: BinanceTicker | any;
   technical_view: TechnicalView;
@@ -330,6 +344,13 @@ export interface CouncilDebateResult {
   risk_view: RiskView;
   validator_view: ValidatorView;
   master_verdict: MasterVerdict;
+  token_metrics?: {
+    last_tokens?: number;
+    saved_tokens?: number;
+    savings_pct?: number;
+    latency_ms?: number;
+    model?: string;
+  };
 }
 
 export interface UserPredictionEvaluation {
@@ -456,5 +477,113 @@ export interface TelegramStatus {
     time: string;
   }>;
 }
+
+export interface CandidateSetup {
+  coin: string;
+  price: string;
+  change24h: string;
+  direction: string;
+  thesis: string;
+}
+
+export interface AvoidCoin {
+  coin: string;
+  reason: string;
+}
+
+export interface TimeAlert {
+  time: string;
+  event: string;
+  impact: string;
+}
+
+export interface MarketPillar {
+  symbol: string;
+  name: string;
+  role: string;
+  price: string;
+  change24h: string;
+  rsi: number;
+  trend: string;
+  support?: string;
+  resistance?: string;
+}
+
+export interface MarketBreadth {
+  greenCount: number;
+  redCount: number;
+  totalCoins: number;
+  breadthPct: number;
+  avgAltChange: number;
+}
+
+export interface MarketSentiment {
+  fearGreedScore: number;
+  fearGreedLabel: string;
+  capitalFlowSummary: string;
+}
+
+export interface DailyBriefingData {
+  success: boolean;
+  date: string;
+  isoDate: string;
+  healthScore: number;
+  regime: string;
+  regimeStatus: "SAFE" | "NEUTRAL" | "CAUTION";
+  regimeSummary: string;
+  marketBreadth?: MarketBreadth;
+  sentiment?: MarketSentiment;
+  pillars?: MarketPillar[];
+  macro: {
+    btcPrice: string;
+    btcChange24h: string;
+    rsi14: number;
+    trend: string;
+    fundingRate: string;
+    fundingCondition: string;
+  };
+  candidateSetups: CandidateSetup[];
+  avoidCoins: AvoidCoin[];
+  timeAlerts: TimeAlert[];
+  disciplineRules: string[];
+}
+
+export interface DailyReviewData {
+  success: boolean;
+  date: string;
+  formattedDate: string;
+  stats: {
+    totalTrades: number;
+    closedTrades: number;
+    winningTrades: number;
+    losingTrades: number;
+    beTrades: number;
+    winRate: number;
+    totalPnL: number;
+    grossProfit: number;
+    grossLoss: number;
+    profitFactor: string | number;
+  };
+  trades: Array<{
+    id: number;
+    coin: string;
+    type: string;
+    entry_price: number;
+    exit_price: number;
+    stop_loss: number;
+    take_profit: number;
+    position_size: number;
+    pnl_amount: number;
+    pnl_percent: number;
+    status: string;
+  }>;
+  audit: {
+    disciplineScore: number;
+    strengths: string[];
+    weaknesses: string[];
+    lessons: string[];
+  };
+}
+
 
 

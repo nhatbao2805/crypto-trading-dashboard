@@ -4,6 +4,7 @@
  */
 
 const https = require('node:https');
+require('../config/constants'); // Guarantees .env is auto-loaded in Node 22
 
 class TelegramAlertService {
   constructor() {

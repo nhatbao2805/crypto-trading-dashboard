@@ -29,8 +29,8 @@ export const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, terms, onC
               <BookOpen className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100">Từ Điển Thuật Ngữ Crypto & SMC (21 Thuật Ngữ)</h3>
-              <p className="text-xs text-slate-400">Trích lục chuẩn từ Chương 10 Giáo Trình Toàn Tập</p>
+              <h3 className="text-base font-bold text-slate-100">Từ Điển Thuật Ngữ Crypto & SMC ({terms.length} Thuật Ngữ)</h3>
+              <p className="text-xs text-slate-400">Trích lục chuẩn từ Chương 11 Giáo Trình Toàn Tập</p>
             </div>
           </div>
           <button

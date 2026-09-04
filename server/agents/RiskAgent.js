@@ -10,46 +10,57 @@ class RiskAgent extends BaseAgent {
     );
   }
 
-  async analyze(coin, liveMarket, technicalView) {
+  async analyze(coin, liveMarket, technicalView, style = 'SCALPING') {
     const currentPrice = Number(liveMarket.price) || 60000;
     const isBullish = technicalView.signal.includes('BULLISH');
     const isBearish = technicalView.signal.includes('BEARISH');
+    const styleUpper = (style || 'SCALPING').toUpperCase();
+
+    let slPct = 0.005; // 0.5% default for scalp
+    let tp1Pct = 0.010;
+    let tp2Pct = 0.018;
+    let maxLev = '10x - 15x';
+
+    if (styleUpper === 'DAY_TRADE') {
+      slPct = 0.012; // 1.2%
+      tp1Pct = 0.022;
+      tp2Pct = 0.035;
+      maxLev = '5x - 10x';
+    } else if (styleUpper === 'SWING') {
+      slPct = 0.025; // 2.5%
+      tp1Pct = 0.045;
+      tp2Pct = 0.075;
+      maxLev = '2x - 3x';
+    }
 
     let slPrice, tpPrice1, tpPrice2;
     if (isBullish) {
-      slPrice = Number((currentPrice * 0.982).toFixed(2));
-      tpPrice1 = Number((currentPrice * 1.025).toFixed(2));
-      tpPrice2 = Number((currentPrice * 1.045).toFixed(2));
-    } else if (isBearish) {
-      slPrice = Number((currentPrice * 1.018).toFixed(2));
-      tpPrice1 = Number((currentPrice * 0.975).toFixed(2));
-      tpPrice2 = Number((currentPrice * 0.955).toFixed(2));
+      slPrice = Number((currentPrice * (1 - slPct)).toFixed(2));
+      tpPrice1 = Number((currentPrice * (1 + tp1Pct)).toFixed(2));
+      tpPrice2 = Number((currentPrice * (1 + tp2Pct)).toFixed(2));
     } else {
-      slPrice = Number((currentPrice * 0.985).toFixed(2));
-      tpPrice1 = Number((currentPrice * 1.02).toFixed(2));
-      tpPrice2 = Number((currentPrice * 1.035).toFixed(2));
+      slPrice = Number((currentPrice * (1 + slPct)).toFixed(2));
+      tpPrice1 = Number((currentPrice * (1 - tp1Pct)).toFixed(2));
+      tpPrice2 = Number((currentPrice * (1 - tp2Pct)).toFixed(2));
     }
 
     const slDistance = Math.abs(currentPrice - slPrice);
-    const tpDistance = Math.abs(tpPrice1 - currentPrice);
+    const tpDistance = Math.abs(tpPrice2 - currentPrice);
     const rrRatio = slDistance > 0 ? (tpDistance / slDistance).toFixed(1) : '2.0';
 
     let riskScore = 4.5;
     let riskLevel = 'TRUNG BÌNH';
-    let maxLev = '10x';
 
     if (Math.abs(Number(liveMarket.change24h) || 0) > 5.0) {
       riskScore = 8.0;
       riskLevel = 'RẤT CAO - BIẾN ĐỘNG MẠNH';
-      maxLev = '3x - 5x';
+      maxLev = styleUpper === 'SWING' ? '2x' : '3x - 5x';
     } else if (technicalView.estimatedRsi > 70 || technicalView.estimatedRsi < 30) {
       riskScore = 6.5;
       riskLevel = 'CAO - QUÁ MUA/QUÁ BÁN';
-      maxLev = '5x';
     } else {
       riskScore = 3.5;
       riskLevel = 'THẤP - AN TOÀN';
-      maxLev = '10x - 15x';
     }
 
     return {

@@ -8,7 +8,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const CONSTANTS = require('../config/constants');
-const { db } = require('../config/database');
+const db = require('../config/database');
 
 class RagService {
   constructor() {

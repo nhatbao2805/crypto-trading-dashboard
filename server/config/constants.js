@@ -1,4 +1,13 @@
 const path = require('node:path');
+const fs = require('node:fs');
+
+// Auto-load .env file if present in project root (Node 20.6.0+)
+const envPath = path.join(__dirname, '..', '..', '.env');
+if (typeof process.loadEnvFile === 'function' && fs.existsSync(envPath)) {
+  try {
+    process.loadEnvFile(envPath);
+  } catch (_) {}
+}
 
 const CONSTANTS = {
   PORT: process.env.PORT || 3000,

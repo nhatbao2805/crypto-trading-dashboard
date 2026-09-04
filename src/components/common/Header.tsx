@@ -6,10 +6,14 @@ import {
   FileSpreadsheet,
   Zap,
   Bot,
-  UserCheck
+  UserCheck,
+  Sun,
+  Moon
 } from "lucide-react";
 import { MainTab } from "../../types";
 import { binanceService, formatCoinPrice } from "../../services/binance";
+import { DailyBriefingModal } from "../briefing/DailyBriefingModal";
+import { DailyReviewModal } from "../briefing/DailyReviewModal";
 
 interface HeaderProps {
   activeTab: MainTab;
@@ -64,6 +68,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [changes, setChanges] = useState<Record<string, number>>({});
   const [flashStates, setFlashStates] = useState<Record<string, "up" | "down" | null>>({});
+  const [isBriefingOpen, setIsBriefingOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
 
   useEffect(() => {
     let prevPrices: Record<string, number> = {};
@@ -92,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
   const TabIcon = meta.icon;
 
   return (
-    <header className="sticky top-0 z-30 bg-[#070b13]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 h-[52px] flex items-center justify-between gap-4 transition-all">
+    <header className="sticky top-0 z-30 bg-[#070b13]/95 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-6 h-[52px] flex items-center justify-between gap-3 transition-all">
       {/* Left: Mobile Toggle & Active Module Info */}
       <div className="flex items-center gap-3 shrink-0">
         <button
@@ -116,6 +122,27 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Center: Action Buttons for Pre-Market Briefing & Post-Market Review */}
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => setIsBriefingOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all shadow-sm hover:shadow-amber-500/10 active:scale-95"
+          title="Bản tin khởi động phiên & Toàn cảnh thị trường hôm nay"
+        >
+          <Sun className="w-3.5 h-3.5 text-amber-400" />
+          <span className="hidden sm:inline">Bản Tin Ngày</span>
+        </button>
+
+        <button
+          onClick={() => setIsReviewOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold transition-all shadow-sm hover:shadow-purple-500/10 active:scale-95"
+          title="Review & Tổng kết toàn bộ lệnh đã đánh trong ngày hôm nay"
+        >
+          <Moon className="w-3.5 h-3.5 text-purple-400" />
+          <span className="hidden sm:inline">Review Lệnh Ngày</span>
+        </button>
       </div>
 
       {/* Right: Sleek Binance Live Ticker Pills + Status */}
@@ -154,6 +181,10 @@ export const Header: React.FC<HeaderProps> = ({
           <span>AGY v1.1</span>
         </div>
       </div>
+
+      {/* Pop-up Modals */}
+      <DailyBriefingModal isOpen={isBriefingOpen} onClose={() => setIsBriefingOpen(false)} />
+      <DailyReviewModal isOpen={isReviewOpen} onClose={() => setIsReviewOpen(false)} />
     </header>
   );
 };

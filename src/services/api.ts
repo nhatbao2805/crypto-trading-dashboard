@@ -17,7 +17,10 @@ import {
   PaperHistoryStats,
   MarketScreenerResult,
   NlpStrategyResponse,
-  TelegramStatus
+  TelegramStatus,
+  VolatilityEvent,
+  DailyBriefingData,
+  DailyReviewData
 } from "../types";
 
 const API_BASE = "";
@@ -184,6 +187,9 @@ export const NewsApi = {
   getMarketTicker: (coin: string) =>
     request<{ ticker: BinanceTicker }>(`/api/market/ticker?coin=${coin.toUpperCase()}`),
 
+  getVolatilityStream: (limit = 10) =>
+    request<{ success: boolean; events: VolatilityEvent[] }>(`/api/market/volatility-stream?limit=${limit}`),
+
   analyzeCoin: (payload: { coin: string; marketOverride?: any; articlesOverride?: any }) =>
     request<{ success: boolean; analysis: NewsAnalysisResult }>("/api/news/analyze", {
       method: "POST",
@@ -213,10 +219,10 @@ export const NewsApi = {
 
 // 5. Multi-Agent AI Trader Council APIs
 export const AiTraderApi = {
-  runCouncilAnalysis: (payload: { coin: string; clientMarket?: any }) =>
-    request<CouncilDebateResult>("/api/ai-trader/council-analysis", {
+  runCouncilAnalysis: (payload: { coin: string; clientMarket?: any; forceRefresh?: boolean; tradingStyle?: "SCALPING" | "DAY_TRADE" | "SWING" }) =>
+    request<CouncilDebateResult>("/api/ai-trader/council/debate", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     }),
 
   getDebates: (coin?: string) =>
@@ -233,6 +239,33 @@ export const AiTraderApi = {
 
   chatCouncil: (payload: { prompt: string; coin?: string; clientMarket?: any }) =>
     request<{ success: boolean; coin: string; reply?: string; output?: string }>("/api/ai-trader/chat-council", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  executeAutoTrade: (payload: {
+    coin?: string;
+    riskPercent?: number;
+    minConfidence?: number;
+    forceTrade?: boolean;
+    ttlMinutes?: number | string | null;
+    maxLossUsd?: number | string | null;
+    margin?: number | string | null;
+    leverage?: number | string | null;
+    tradingStyle?: "SCALPING" | "DAY_TRADE" | "SWING";
+  }) =>
+    request<{
+      success: boolean;
+      executed: boolean;
+      coin: string;
+      livePrice: number;
+      verdict: any;
+      position: PaperPosition | null;
+      debate: CouncilDebateResult;
+      token_metrics?: any;
+      executionReason: string;
+      latencyMs: number;
+    }>("/api/ai-trader/auto-trade/execute", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -267,6 +300,19 @@ export const AiTraderApi = {
     request<{ success: boolean; message: string }>("/api/ai-trader/telegram/test-alert", {
       method: "POST",
     }),
+
+  // Daily Pre-Market Briefing & Post-Market Review
+  getDailyBriefing: () =>
+    request<DailyBriefingData>("/api/ai-trader/daily-briefing"),
+
+  getDailyReview: (date?: string) =>
+    request<DailyReviewData>(`/api/ai-trader/daily-review${date ? "?date=" + date : ""}`),
+
+  saveDailyReviewToNote: (payload: any) =>
+    request<{ success: boolean; note: any }>("/api/ai-trader/daily-review/save-note", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
 
 // 6. Human Trader (Realtime Paper Trading) APIs
@@ -282,6 +328,25 @@ export const PaperTraderApi = {
 
   getPositions: (coin?: string) =>
     request<{ positions: PaperPosition[] }>(`/api/paper-trader/positions${coin ? "?coin=" + coin : ""}`),
+
+  getLivePositions: () =>
+    request<{
+      success: boolean;
+      positions: Array<
+        PaperPosition & {
+          currentLivePrice: number;
+          unrealizedPnlAmount: number;
+          unrealizedPnlPercent: number;
+          distanceToStopLossPercent: number | null;
+          distanceToTakeProfitPercent: number | null;
+          isNearStopLoss: boolean;
+          isRiskFree: boolean;
+        }
+      >;
+      totalUnrealizedPnl: number;
+      count: number;
+      timestamp: string;
+    }>("/api/paper-trader/positions/live"),
 
   openPosition: (payload: {
     coin: string;

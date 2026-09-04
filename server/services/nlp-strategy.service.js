@@ -49,7 +49,10 @@ Phân tích và trả về JSON có cấu trúc sau:
       const aiRes = await llmService.generateCompletion({
         systemPrompt,
         userPrompt,
-        jsonMode: true
+        jsonMode: true,
+        modelTier: 'standard',
+        maxTokens: 500,
+        temperature: 0.2
       });
       const parsed = JSON.parse(aiRes);
       if (parsed && parsed.strategy_name) {

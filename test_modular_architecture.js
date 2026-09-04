@@ -240,6 +240,10 @@ async function runModularTests() {
   console.log('\n================================================================');
   console.log(`🎉 KẾT QUẢ TÁI CẤU TRÚC: ${passed}/${total} TEST CASES ĐẠT CHUẨN 100%!`);
   console.log('================================================================\n');
+  process.exit(0);
 }
 
-runModularTests().catch(console.error);
+runModularTests().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

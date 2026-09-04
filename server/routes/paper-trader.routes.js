@@ -9,6 +9,10 @@ function handlePaperTraderRoutes(req, res, pathname, method, query, body) {
     return paperTraderController.resetAccount(req, res, body);
   }
 
+  if (pathname === '/api/paper-trader/positions/live' && method === 'GET') {
+    return paperTraderController.getLivePositions(req, res);
+  }
+
   if (pathname === '/api/paper-trader/positions' && method === 'GET') {
     return paperTraderController.getPositions(req, res, query);
   }

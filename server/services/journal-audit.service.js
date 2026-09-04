@@ -120,7 +120,10 @@ Viết 1 nhận xét đánh giá tâm lý & kỷ luật thẳng thắn, tâm huy
 
       aiCoachCommentary = await llmService.generateCompletion({
         systemPrompt: 'Bạn là Senior Risk & Discipline Coach.',
-        userPrompt: prompt
+        userPrompt: prompt,
+        modelTier: 'standard',
+        maxTokens: 400,
+        temperature: 0.3
       });
     } catch (_) {
       aiCoachCommentary = `[AI Coach]: Điểm kỷ luật hiện tại đạt ${audit.disciplineScore}/100. Cần đặc biệt chú ý loại bỏ thói quen vào lệnh theo cảm xúc sau các lệnh thua lỗ, luôn duy trì Stop Loss bắt buộc theo Chương 9.`;
@@ -135,6 +138,7 @@ Viết 1 nhận xét đánh giá tâm lý & kỷ luật thẳng thắn, tâm huy
       audit,
       stats,
       ai_coach_commentary: aiCoachCommentary,
+      commentary: aiCoachCommentary,
       generated_at: new Date().toISOString()
     };
 

@@ -65,7 +65,10 @@ Trả về định dạng JSON:
       const aiRes = await llmService.generateCompletion({
         systemPrompt: 'Bạn là Agent Sentinel (Luật sư của Quỷ). Luôn trả về JSON hợp lệ.',
         userPrompt: prompt,
-        jsonMode: true
+        jsonMode: true,
+        modelTier: 'deep',
+        maxTokens: 800,
+        temperature: 0.4
       });
 
       const parsed = JSON.parse(aiRes);

@@ -4,6 +4,7 @@
  */
 
 const binanceService = require('./binance.service');
+const loggerService = require('./logger.service');
 
 class MarketScreenerService {
   constructor() {
@@ -18,15 +19,15 @@ class MarketScreenerService {
 
   getInitialFallbackResults() {
     const rawList = [
-      { symbol: 'BTCUSDT', coin: 'BTC', price: 65240, change24h: 1.85, volumeUsdt: 1250000000, estimatedRsi: 58 },
-      { symbol: 'ETHUSDT', coin: 'ETH', price: 3450, change24h: 2.10, volumeUsdt: 650000000, estimatedRsi: 62 },
-      { symbol: 'SOLUSDT', coin: 'SOL', price: 145.5, change24h: 3.40, volumeUsdt: 420000000, estimatedRsi: 66 },
-      { symbol: 'BNBUSDT', coin: 'BNB', price: 585.0, change24h: 0.80, volumeUsdt: 180000000, estimatedRsi: 52 },
-      { symbol: 'SUIUSDT', coin: 'SUI', price: 1.85, change24h: 5.12, volumeUsdt: 210000000, estimatedRsi: 72 },
-      { symbol: 'DOGEUSDT', coin: 'DOGE', price: 0.125, change24h: 6.50, volumeUsdt: 310000000, estimatedRsi: 74 },
-      { symbol: 'XRPUSDT', coin: 'XRP', price: 0.58, change24h: -1.20, volumeUsdt: 190000000, estimatedRsi: 44 },
+      { symbol: 'BTCUSDT', coin: 'BTC', price: 78800, change24h: 2.10, volumeUsdt: 1250000000, estimatedRsi: 58 },
+      { symbol: 'ETHUSDT', coin: 'ETH', price: 2420, change24h: 1.00, volumeUsdt: 650000000, estimatedRsi: 62 },
+      { symbol: 'SOLUSDT', coin: 'SOL', price: 101.5, change24h: 2.40, volumeUsdt: 420000000, estimatedRsi: 66 },
+      { symbol: 'BNBUSDT', coin: 'BNB', price: 710.0, change24h: 3.60, volumeUsdt: 180000000, estimatedRsi: 52 },
+      { symbol: 'SUIUSDT', coin: 'SUI', price: 0.765, change24h: 6.50, volumeUsdt: 210000000, estimatedRsi: 72 },
+      { symbol: 'DOGEUSDT', coin: 'DOGE', price: 0.083, change24h: 2.30, volumeUsdt: 310000000, estimatedRsi: 74 },
+      { symbol: 'XRPUSDT', coin: 'XRP', price: 1.39, change24h: 4.10, volumeUsdt: 190000000, estimatedRsi: 44 },
       { symbol: 'NEARUSDT', coin: 'NEAR', price: 4.80, change24h: 4.20, volumeUsdt: 140000000, estimatedRsi: 68 },
-      { symbol: 'ADAUSDT', coin: 'ADA', price: 0.38, change24h: 1.10, volumeUsdt: 95000000, estimatedRsi: 49 },
+      { symbol: 'ADAUSDT', coin: 'ADA', price: 0.65, change24h: 1.10, volumeUsdt: 95000000, estimatedRsi: 49 },
       { symbol: 'AVAXUSDT', coin: 'AVAX', price: 26.5, change24h: 2.80, volumeUsdt: 110000000, estimatedRsi: 61 }
     ];
 
@@ -190,14 +191,22 @@ class MarketScreenerService {
         rankedSignals: sortedByScore.slice(0, 20)
       };
 
-      // 3. Trigger Telegram Alert for top high-confluence coin (Score >= 82)
+      // Log general scan info
+      const top1 = topBreakouts[0] || sortedByScore[0];
+      loggerService.info(`Đã quét ${totalScanned} cặp USDT | Thị trường: ${bullishBreadth}% Tăng | Top 1: ${top1?.coin} (Score ${top1?.confluenceScore}/100, Vol ${top1?.volumeUsdFormatted})`);
+
+      // 3. (TP/SL monitoring is handled exclusively by paperTradingService's 3s live monitor)
+
+      // 4. Trigger Telegram Alert for top high-confluence coin (Score >= 82)
       if (this.telegramDispatcher && topBreakouts.length > 0) {
         const bestCandidate = topBreakouts[0];
         if (bestCandidate.confluenceScore >= 82) {
+          loggerService.alert(`Phát hiện kèo Breakout ${bestCandidate.coin}/USDT (Score ${bestCandidate.confluenceScore}) -> Gửi Telegram Alert`);
           this.telegramDispatcher.dispatchScreenerAlert(bestCandidate);
         }
       }
     } catch (err) {
+      loggerService.error(`Lỗi quét thị trường: ${err.message}`);
       console.error('[MarketScreenerService] Scan error:', err.message);
     } finally {
       this.isScanning = false;

@@ -8,7 +8,7 @@ async function handleJournalRoutes(req, res, pathname, method, query, body) {
 
   // 2. AI Review Endpoints
   if (pathname === '/api/journal/ai-review' && method === 'POST') {
-    return journalController.generateAiReview(req, res, body);
+    return await journalController.generateAiReview(req, res, body);
   }
 
   if ((pathname === '/api/journal/ai-review/history' || pathname === '/api/journal/reviews') && method === 'GET') {
@@ -37,7 +37,7 @@ async function handleJournalRoutes(req, res, pathname, method, query, body) {
   }
 
   // 5. General Journal List & Create
-  if (pathname === '/api/journal' && method === 'GET') {
+  if ((pathname === '/api/journal' || pathname === '/api/journal/entries') && method === 'GET') {
     return journalController.getEntries(req, res, query);
   }
 

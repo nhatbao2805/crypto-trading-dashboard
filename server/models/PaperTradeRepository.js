@@ -1,5 +1,22 @@
 const db = require('../config/database');
 
+// Auto-migrate schema for TTL, Max Dollar Loss & Debate Payload
+try {
+  const tableInfo = db.prepare(`PRAGMA table_info(paper_trades)`).all();
+  const columnNames = tableInfo.map(c => c.name);
+  if (!columnNames.includes('max_loss_usd')) {
+    db.exec(`ALTER TABLE paper_trades ADD COLUMN max_loss_usd REAL;`);
+  }
+  if (!columnNames.includes('expires_at')) {
+    db.exec(`ALTER TABLE paper_trades ADD COLUMN expires_at TEXT;`);
+  }
+  if (!columnNames.includes('debate_payload')) {
+    db.exec(`ALTER TABLE paper_trades ADD COLUMN debate_payload TEXT;`);
+  }
+} catch (e) {
+  console.warn('[PaperTradeRepository] Schema migration note:', e.message);
+}
+
 class PaperTradeRepository {
   getAccount() {
     const row = db.prepare('SELECT * FROM paper_account WHERE id = 1').get();
@@ -77,21 +94,26 @@ class PaperTradeRepository {
     const entry_price = Number(data.entry_price) || 0;
     const stop_loss = data.stop_loss ? Number(data.stop_loss) : null;
     const take_profit = data.take_profit ? Number(data.take_profit) : null;
-    const position_size = margin * leverage;
+    const position_size = Number((margin * leverage).toFixed(2));
     const ai_verdict = data.ai_verdict || '';
     const notes = data.notes || '';
+    const max_loss_usd = data.max_loss_usd ? Number(data.max_loss_usd) : null;
+    const expires_at = data.expires_at || (data.ttl_minutes ? new Date(Date.now() + Number(data.ttl_minutes) * 60000).toISOString() : null);
+    const debate_payload = typeof data.debate_payload === 'object' ? JSON.stringify(data.debate_payload) : (data.debate_payload || null);
 
     const stmt = db.prepare(`
       INSERT INTO paper_trades (
         date, coin, type, entry_price, stop_loss, take_profit,
         leverage, position_size, margin, status, ai_verdict, notes,
+        max_loss_usd, expires_at, debate_payload,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
       date, coin, type, entry_price, stop_loss, take_profit,
-      leverage, position_size, margin, ai_verdict, notes, now, now
+      leverage, position_size, margin, ai_verdict, notes,
+      max_loss_usd, expires_at, debate_payload, now, now
     );
 
     return this.getPositionById(result.lastInsertRowid);
@@ -129,6 +151,16 @@ class PaperTradeRepository {
     `).run(exit_price, Number(pnl_amount.toFixed(2)), Number(pnl_percent.toFixed(2)), closeReason, now, Number(id));
 
     this.updateBalance(pnl_amount);
+    return this.getPositionById(id);
+  }
+
+  updateStopLoss(id, newStopLoss) {
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE paper_trades 
+      SET stop_loss = ?, updated_at = ? 
+      WHERE id = ? AND status = 'OPEN'
+    `).run(Number(newStopLoss), now, Number(id));
     return this.getPositionById(id);
   }
 

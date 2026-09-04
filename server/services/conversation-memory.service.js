@@ -68,7 +68,10 @@ Hãy tạo bản tóm tắt cô đọng mới nhất (< 100 từ):`;
     try {
       const newSummary = await llmService.generateCompletion({
         systemPrompt,
-        userPrompt
+        userPrompt,
+        modelTier: 'lite',
+        maxTokens: 150,
+        temperature: 0.2
       });
       if (newSummary && newSummary.length > 10) {
         session.summary = newSummary.trim();

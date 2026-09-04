@@ -1,9 +1,13 @@
 const aiTraderController = require('../controllers/ai-trader.controller');
 
 async function handleAiTraderRoutes(req, res, pathname, method, query, body) {
-  // Council Analysis
-  if (pathname === '/api/ai-trader/council-analysis' && method === 'POST') {
+  // Council Analysis & Auto-Trading
+  if ((pathname === '/api/ai-trader/council-analysis' || pathname === '/api/ai-trader/council/debate') && method === 'POST') {
     return await aiTraderController.runCouncilAnalysis(req, res, body);
+  }
+
+  if (pathname === '/api/ai-trader/auto-trade/execute' && method === 'POST') {
+    return await aiTraderController.executeAutoTrade(req, res, body);
   }
 
   if (pathname === '/api/ai-trader/debates' && method === 'GET') {
@@ -57,6 +61,19 @@ async function handleAiTraderRoutes(req, res, pathname, method, query, body) {
 
   if (pathname === '/api/ai-trader/telegram/test-alert' && method === 'POST') {
     return await aiTraderController.sendTestTelegramAlert(req, res);
+  }
+
+  // Pre-Market Daily Briefing & Post-Market Review
+  if (pathname === '/api/ai-trader/daily-briefing' && method === 'GET') {
+    return await aiTraderController.getDailyBriefing(req, res);
+  }
+
+  if (pathname === '/api/ai-trader/daily-review' && method === 'GET') {
+    return await aiTraderController.getDailyReview(req, res, query);
+  }
+
+  if (pathname === '/api/ai-trader/daily-review/save-note' && method === 'POST') {
+    return await aiTraderController.saveDailyReviewToNote(req, res, body);
   }
 
   return false;

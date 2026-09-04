@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   History,
   Activity,
-  Zap
+  Zap,
+  FileText
 } from "lucide-react";
 import {
   PaperAccount,
@@ -25,6 +26,7 @@ import {
 } from "../../types";
 import { PaperTraderApi, AiTraderApi } from "../../services/api";
 import { TRACKED_COINS, formatCoinPrice } from "../../services/binance";
+import { CouncilDebateModal } from "../aitrader/CouncilDebateModal";
 
 interface HumanTraderViewProps {
   livePrices?: Record<string, number>;
@@ -47,6 +49,24 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
   const [takeProfit, setTakeProfit] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
+  const [flashStates, setFlashStates] = useState<Record<string, "up" | "down" | null>>({});
+  const [selectedDebatePos, setSelectedDebatePos] = useState<PaperPosition | null>(null);
+  const prevPricesRef = React.useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    Object.entries(livePrices || {}).forEach(([coin, price]) => {
+      const upper = coin.toUpperCase();
+      const prev = prevPricesRef.current[upper];
+      if (prev !== undefined && prev !== price && price > 0) {
+        const direction = price > prev ? "up" : "down";
+        setFlashStates((f) => ({ ...f, [upper]: direction }));
+        setTimeout(() => {
+          setFlashStates((f) => ({ ...f, [upper]: null }));
+        }, 750);
+      }
+      prevPricesRef.current[upper] = price;
+    });
+  }, [livePrices]);
 
   // AI Pre-Trade Check State
   const [isAiChecking, setIsAiChecking] = useState<boolean>(false);
@@ -75,6 +95,27 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
   useEffect(() => {
     loadTradingData();
   }, []);
+
+  // Continuous 3-second live polling for open positions and Stop Loss monitoring
+  useEffect(() => {
+    let timer: any = null;
+    if (activeSubTab === "positions") {
+      const pollPositions = () => {
+        PaperTraderApi.getLivePositions()
+          .then((res) => {
+            if (res.success && res.positions) {
+              setOpenPositions(res.positions as any);
+            }
+          })
+          .catch(() => {});
+      };
+      pollPositions();
+      timer = setInterval(pollPositions, 3000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [activeSubTab]);
 
   const currentPrice = livePrices[selectedCoin.toUpperCase()] || 0;
 
@@ -205,10 +246,10 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
     }
   };
 
-  // Calculate live unrealized PnL for all open positions
+  // Calculate live unrealized PnL and Stop Loss / Take Profit metrics for all open positions
   let totalUnrealizedPnl = 0;
   const positionsWithLivePnl = openPositions.map((pos) => {
-    const liveP = livePrices[pos.coin.toUpperCase()] || pos.entry_price;
+    const liveP = livePrices[pos.coin.toUpperCase()] || (pos as any).currentLivePrice || pos.entry_price;
     const isShort = pos.type === "SHORT";
     let pnlPct = 0;
     if (pos.entry_price > 0 && liveP > 0) {
@@ -220,11 +261,37 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
     const pnlAmt = pos.margin * (pnlPct / 100);
     totalUnrealizedPnl += pnlAmt;
 
+    const sl = pos.stop_loss ? Number(pos.stop_loss) : null;
+    const tp = pos.take_profit ? Number(pos.take_profit) : null;
+    const isLong = pos.type === "LONG";
+
+    let distSl = (pos as any).distanceToStopLossPercent ?? null;
+    let isNearSl = (pos as any).isNearStopLoss ?? false;
+    if (sl && liveP > 0 && distSl === null) {
+      distSl = isLong
+        ? Number((((liveP - sl) / liveP) * 100).toFixed(2))
+        : Number((((sl - liveP) / liveP) * 100).toFixed(2));
+      isNearSl = distSl <= 1.0;
+    }
+
+    let distTp = (pos as any).distanceToTakeProfitPercent ?? null;
+    if (tp && liveP > 0 && distTp === null) {
+      distTp = isLong
+        ? Number((((tp - liveP) / liveP) * 100).toFixed(2))
+        : Number((((liveP - tp) / liveP) * 100).toFixed(2));
+    }
+
+    const isRiskFree = isLong ? (sl !== null && sl >= pos.entry_price) : (sl !== null && sl <= pos.entry_price);
+
     return {
       ...pos,
       currentPrice: liveP,
       livePnlPct: Number(pnlPct.toFixed(2)),
-      livePnlAmt: Number(pnlAmt.toFixed(2))
+      livePnlAmt: Number(pnlAmt.toFixed(2)),
+      distanceToStopLossPercent: distSl,
+      distanceToTakeProfitPercent: distTp,
+      isNearStopLoss: isNearSl,
+      isRiskFree
     };
   });
 
@@ -618,9 +685,13 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-emerald-400" />
               <h3 className="font-bold text-white text-base">Danh Sách Vị Thế Đang Mở</h3>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold animate-pulse">
+                <Activity className="w-3 h-3" />
+                <span>GIÁM SÁT REALTIME SL/TP (3S)</span>
+              </span>
             </div>
-            <span className="text-xs text-slate-400">
-              PnL tự động nhảy theo giá nến Binance Live
+            <span className="text-xs text-slate-400 hidden sm:inline">
+              PnL tự động nhảy & tự ngắt Stop Loss theo giá nến Binance Live
             </span>
           </div>
 
@@ -629,7 +700,7 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
               <Activity className="w-8 h-8 text-slate-600" />
               <div className="font-bold text-white text-sm">Hiện không có vị thế nào đang mở</div>
               <div className="text-xs">
-                Chuyển qua tab "Bàn Đặt Lệnh Thực Chiến" để mở lệnh mới.
+                Chuyển qua tab "Bàn Đặt Lệnh Thực Chiến" hoặc sang AI Trader để AI tự động đặt lệnh.
               </div>
             </div>
           ) : (
@@ -645,6 +716,7 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
                     <th className="py-3 px-3">Giá Live Hiện Tại</th>
                     <th className="py-3 px-3">Stop Loss</th>
                     <th className="py-3 px-3">Take Profit</th>
+                    <th className="py-3 px-3">Giám Sát SL / TP</th>
                     <th className="py-3 px-3">Lãi / Lỗ (PnL)</th>
                     <th className="py-3 px-3 text-right">Thao Tác</th>
                   </tr>
@@ -652,6 +724,7 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
                 <tbody className="divide-y divide-slate-800/60 font-mono">
                   {positionsWithLivePnl.map((pos) => {
                     const isPos = pos.livePnlAmt >= 0;
+                    const flash = flashStates[pos.coin.toUpperCase()];
                     return (
                       <tr key={pos.id} className="hover:bg-slate-800/30 transition-colors">
                         <td className="py-3.5 px-3 font-bold text-white">{pos.coin}/USDT</td>
@@ -669,21 +742,82 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
                         <td className="py-3.5 px-3 text-purple-400 font-bold">{pos.leverage}x</td>
                         <td className="py-3.5 px-3">${pos.margin.toFixed(2)}</td>
                         <td className="py-3.5 px-3 font-bold">${formatCoinPrice(pos.entry_price)}</td>
-                        <td className="py-3.5 px-3 font-bold text-sky-400">${formatCoinPrice(pos.currentPrice)}</td>
+                        <td className="py-3.5 px-3">
+                          <span
+                            className={`px-2 py-0.5 rounded-lg font-bold font-mono transition-all inline-block ${
+                              flash === "up"
+                                ? "tick-flash-up text-emerald-300 border border-emerald-500/40 bg-emerald-500/10"
+                                : flash === "down"
+                                ? "tick-flash-down text-rose-300 border border-rose-500/40 bg-rose-500/10"
+                                : "text-sky-400 bg-slate-900/60"
+                            }`}
+                          >
+                            ${formatCoinPrice(pos.currentPrice)}
+                          </span>
+                        </td>
                         <td className="py-3.5 px-3 text-rose-400">{pos.stop_loss ? `$${formatCoinPrice(pos.stop_loss)}` : "-"}</td>
                         <td className="py-3.5 px-3 text-emerald-400">{pos.take_profit ? `$${formatCoinPrice(pos.take_profit)}` : "-"}</td>
                         <td className="py-3.5 px-3">
-                          <div className={`font-bold ${isPos ? "text-emerald-400" : "text-rose-400"}`}>
+                          <div className="space-y-1">
+                            {pos.stop_loss ? (
+                              pos.isRiskFree ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/40">
+                                  🛡️ SL Hòa Vốn (${formatCoinPrice(pos.stop_loss)})
+                                </span>
+                              ) : pos.isNearStopLoss ? (
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/40 animate-pulse">
+                                  ⚠️ Cận SL ({pos.distanceToStopLossPercent}%)
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">
+                                  Cách SL: <b className="text-rose-400">-{pos.distanceToStopLossPercent}%</b>
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-[10px] text-slate-500">Chưa đặt SL</span>
+                            )}
+
+                            {pos.take_profit && (
+                              <div className="text-[10px] text-slate-400">
+                                Cách TP: <b className="text-emerald-400">+{pos.distanceToTakeProfitPercent}%</b>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3">
+                          <div
+                            className={`font-bold transition-all px-1.5 py-0.5 rounded-lg inline-block ${
+                              flash === "up"
+                                ? "tick-flash-up text-emerald-300"
+                                : flash === "down"
+                                ? "tick-flash-down text-rose-300"
+                                : isPos
+                                ? "text-emerald-400"
+                                : "text-rose-400"
+                            }`}
+                          >
                             {isPos ? "+" : ""}${pos.livePnlAmt.toFixed(2)} ({isPos ? "+" : ""}{pos.livePnlPct.toFixed(2)}%)
                           </div>
                         </td>
                         <td className="py-3.5 px-3 text-right">
-                          <button
-                            onClick={() => handleClosePosition(pos)}
-                            className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold text-xs border border-rose-500/30 transition-all"
-                          >
-                            Đóng Lệnh
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {(pos.notes || (pos as any).debate_payload || (pos as any).ai_verdict) && (
+                              <button
+                                onClick={() => setSelectedDebatePos(pos)}
+                                className="px-2 py-1.5 rounded-lg text-xs font-bold bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30 flex items-center gap-1 shrink-0"
+                                title="Xem toàn văn biên bản tranh luận AI của lệnh này"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-purple-400" />
+                                <span>Log AI</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleClosePosition(pos)}
+                              className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-lg font-bold text-xs border border-rose-500/30 transition-all shrink-0"
+                            >
+                              Đóng Lệnh
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -767,6 +901,22 @@ export const HumanTraderView: React.FC<HumanTraderViewProps> = ({ livePrices = {
           )}
         </div>
       )}
+
+      {/* COUNCIL DEBATE MODAL */}
+      <CouncilDebateModal
+        isOpen={!!selectedDebatePos}
+        onClose={() => setSelectedDebatePos(null)}
+        debate={
+          (selectedDebatePos as any)?.debate_payload
+            ? typeof (selectedDebatePos as any).debate_payload === "string"
+              ? JSON.parse((selectedDebatePos as any).debate_payload)
+              : (selectedDebatePos as any).debate_payload
+            : null
+        }
+        rawNotes={selectedDebatePos?.notes || (selectedDebatePos as any)?.ai_verdict}
+        coin={selectedDebatePos?.coin}
+        tradeType={selectedDebatePos?.type}
+      />
     </div>
   );
 };
